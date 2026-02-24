@@ -109,12 +109,12 @@ export default function KanbanList({ list, cards, userProfile, isOverlay }: Kanb
             <div
                 {...(!list.is_global && !isEditing ? attributes : {})}
                 {...(!list.is_global && !isEditing ? listeners : {})}
-                className={`p-3 font-semibold flex justify-between items-center border-b ${list.is_global
+                className={`group p-3 font-semibold flex justify-between items-center border-b ${list.is_global
                     ? 'text-amber-900 border-amber-200/50'
                     : isEditing ? 'border-indigo-200 bg-white/50 rounded-t-xl' : 'text-slate-700 border-slate-200/50 cursor-grab active:cursor-grabbing'
                     }`}
             >
-                <div className="flex items-center gap-2 overflow-hidden flex-1 group">
+                <div className="flex items-center gap-2 overflow-hidden flex-1">
                     {isEditing ? (
                         <input
                             autoFocus
@@ -146,11 +146,11 @@ export default function KanbanList({ list, cards, userProfile, isOverlay }: Kanb
                             <button onPointerDown={(e) => e.stopPropagation()} onClick={() => setIsEditing(false)} className="text-xs font-medium text-slate-600 bg-slate-200 hover:bg-slate-300 px-2 py-1 rounded">{dict.cancel}</button>
                         </div>
                     ) : (
-                        <div className="flex gap-1 shrink-0 ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onPointerDown={(e) => e.stopPropagation()} onClick={() => setIsEditing(true)} className="text-slate-400 hover:text-indigo-600 focus:outline-none p-1 rounded" title={dict.rename_list}>
+                        <div className="flex gap-1 shrink-0 ml-1 opacity-60 hover:opacity-100 transition-opacity">
+                            <button onPointerDown={(e) => e.stopPropagation()} onClick={() => setIsEditing(true)} className="text-slate-400 hover:text-indigo-600 focus:outline-none p-1.5 rounded bg-slate-200/50 hover:bg-slate-200 transition-colors" title={dict.rename_list}>
                                 <Pencil size={14} />
                             </button>
-                            <button onPointerDown={(e) => e.stopPropagation()} onClick={() => handleDeleteList()} className="text-slate-400 hover:text-red-600 focus:outline-none p-1 rounded" title={dict.delete_list}>
+                            <button onPointerDown={(e) => e.stopPropagation()} onClick={() => handleDeleteList()} className="text-slate-400 hover:text-red-600 focus:outline-none p-1.5 rounded bg-slate-200/50 hover:bg-red-50 transition-colors" title={dict.delete_list}>
                                 <Trash2 size={14} />
                             </button>
                         </div>
