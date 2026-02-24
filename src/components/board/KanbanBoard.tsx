@@ -14,7 +14,9 @@ import {
     DragStartEvent,
     DragOverlay,
 } from '@dnd-kit/core'
-horizontalListSortingStrategy,
+import {
+    SortableContext,
+    horizontalListSortingStrategy,
     arrayMove,
 } from '@dnd-kit/sortable'
 import { ListWithCards, Card, List, Profile, Department } from '@/types/kanban'

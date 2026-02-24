@@ -43,13 +43,13 @@ export default function DepartmentManager({ initialDepartments, isAdmin }: { ini
     const [isCreateOpen, setIsCreateOpen] = useState(false)
     const [createName, setCreateName] = useState('')
     const [createIcon, setCreateIcon] = useState('Briefcase')
-    const [createParentId, setCreateParentId] = useState<string>('none')
+    const [createParentIds, setCreateParentIds] = useState<string[]>([])
     const [isCreating, setIsCreating] = useState(false)
 
     const [editingDept, setEditingDept] = useState<Department | null>(null)
     const [editName, setEditName] = useState('')
     const [editIcon, setEditIcon] = useState('Briefcase')
-    const [editParentId, setEditParentId] = useState<string>('none')
+    const [editParentIds, setEditParentIds] = useState<string[]>([])
     const [isEditing, setIsEditing] = useState(false)
 
     const [deletingDept, setDeletingDept] = useState<Department | null>(null)
@@ -58,7 +58,7 @@ export default function DepartmentManager({ initialDepartments, isAdmin }: { ini
     const handleCreate = async () => {
         if (!createName.trim()) return
         setIsCreating(true)
-        const res = await createDepartment(createName.trim(), createIcon, createParentId === 'none' ? null : createParentId)
+        const res = await createDepartment(createName.trim(), createIcon, createParentIds)
         setIsCreating(false)
         if (res.error) {
             toast.error(res.error)
@@ -75,7 +75,7 @@ export default function DepartmentManager({ initialDepartments, isAdmin }: { ini
     const handleEdit = async () => {
         if (!editingDept || !editName.trim()) return
         setIsEditing(true)
-        const res = await updateDepartment(editingDept.id, editName.trim(), editIcon, editParentId === 'none' ? null : editParentId)
+        const res = await updateDepartment(editingDept.id, editName.trim(), editIcon, editParentIds)
         setIsEditing(false)
         if (res.error) {
             toast.error(res.error)
@@ -120,7 +120,6 @@ export default function DepartmentManager({ initialDepartments, isAdmin }: { ini
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {departments.map((dept) => {
                     const IconComponent = (LucideIcons as any)[dept.icon || 'Briefcase'] as LucideIcon || LucideIcons.Briefcase;
-                    const parentDept = departments.find(d => d.id === dept.parent_id);
                     return (
                         <div key={dept.id} className="relative group">
                             <Link href={`/department/${dept.id}`}>
@@ -129,10 +128,18 @@ export default function DepartmentManager({ initialDepartments, isAdmin }: { ini
                                         <div className="w-12 h-12 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform">
                                             <IconComponent className="w-6 h-6" />
                                         </div>
-                                        {parentDept && (
-                                            <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-md max-w-[120px] truncate" title={`Child of ${parentDept.name}`}>
-                                                ↳ {parentDept.name}
-                                            </span>
+                                        {dept.parent_ids && dept.parent_ids.length > 0 && (
+                                            <div className="flex flex-col gap-1 items-end max-w-[120px]">
+                                                {dept.parent_ids.map(pid => {
+                                                    const pDept = departments.find(d => d.id === pid)
+                                                    if (!pDept) return null
+                                                    return (
+                                                        <span key={pid} className="text-[10px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md truncate max-w-full" title={`Child of ${pDept.name}`}>
+                                                            ↳ {pDept.name}
+                                                        </span>
+                                                    )
+                                                })}
+                                            </div>
                                         )}
                                     </div>
                                     <h3 className="text-lg font-semibold text-slate-800 pr-8 line-clamp-2 mt-4">{dept.name}</h3>
@@ -153,7 +160,7 @@ export default function DepartmentManager({ initialDepartments, isAdmin }: { ini
                                                 setEditingDept(dept)
                                                 setEditName(dept.name)
                                                 setEditIcon(dept.icon || 'Briefcase')
-                                                setEditParentId(dept.parent_id || 'none')
+                                                setEditParentIds(dept.parent_ids || [])
                                             }}>
                                                 <Pencil className="h-4 w-4 mr-2" />
                                                 Rename / Edit
@@ -220,18 +227,24 @@ export default function DepartmentManager({ initialDepartments, isAdmin }: { ini
                             </div>
                         </div>
                         <div className="grid gap-2">
-                            <Label>Parent Department (Optional)</Label>
-                            <Select value={createParentId} onValueChange={setCreateParentId}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select parent department" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="none">-- None (Root Level) --</SelectItem>
-                                    {departments.map(d => (
-                                        <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <Label>Parent Departments (Optional)</Label>
+                            <div className="flex flex-col gap-2 max-h-[150px] overflow-y-auto border border-slate-200 rounded-md p-3 bg-white">
+                                {departments.length === 0 && <span className="text-sm text-slate-400">No other departments available</span>}
+                                {departments.map(d => (
+                                    <label key={d.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-slate-50 p-1 rounded">
+                                        <input
+                                            type="checkbox"
+                                            className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-600 h-4 w-4"
+                                            checked={createParentIds.includes(d.id)}
+                                            onChange={(e) => {
+                                                if (e.target.checked) setCreateParentIds([...createParentIds, d.id])
+                                                else setCreateParentIds(createParentIds.filter(id => id !== d.id))
+                                            }}
+                                        />
+                                        {d.name}
+                                    </label>
+                                ))}
+                            </div>
                         </div>
                     </div>
                     <DialogFooter>
@@ -280,18 +293,24 @@ export default function DepartmentManager({ initialDepartments, isAdmin }: { ini
                             </div>
                         </div>
                         <div className="grid gap-2">
-                            <Label>Parent Department</Label>
-                            <Select value={editParentId} onValueChange={setEditParentId}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select parent department" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="none">-- None (Root Level) --</SelectItem>
-                                    {departments.filter(d => d.id !== editingDept?.id).map(d => (
-                                        <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <Label>Parent Departments</Label>
+                            <div className="flex flex-col gap-2 max-h-[150px] overflow-y-auto border border-slate-200 rounded-md p-3 bg-white">
+                                {departments.filter(d => d.id !== editingDept?.id).length === 0 && <span className="text-sm text-slate-400">No other departments available</span>}
+                                {departments.filter(d => d.id !== editingDept?.id).map(d => (
+                                    <label key={d.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-slate-50 p-1 rounded">
+                                        <input
+                                            type="checkbox"
+                                            className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-600 h-4 w-4"
+                                            checked={editParentIds.includes(d.id)}
+                                            onChange={(e) => {
+                                                if (e.target.checked) setEditParentIds([...editParentIds, d.id])
+                                                else setEditParentIds(editParentIds.filter(id => id !== d.id))
+                                            }}
+                                        />
+                                        {d.name}
+                                    </label>
+                                ))}
+                            </div>
                         </div>
                     </div>
                     <DialogFooter>

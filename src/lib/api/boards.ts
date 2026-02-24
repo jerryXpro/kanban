@@ -50,7 +50,7 @@ export async function getBoardData(boardId: string): Promise<BoardWithDetails | 
                 .from('lists')
                 .select('*')
                 .in('board_id', ancestorBoardIds)
-                .or(`is_global.eq.true,target_department_id.eq.${department_id}`)
+                .or(`and(is_global.eq.true,target_department_id.is.null),target_department_id.eq.${department_id}`)
 
             if (sharedLists && sharedLists.length > 0) {
                 // Prepend shared lists to the left

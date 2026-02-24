@@ -2,7 +2,7 @@ export type Department = {
     id: string
     name: string
     icon: string | null
-    parent_id: string | null
+    parent_ids: string[] | null
     created_at: string
 }
 

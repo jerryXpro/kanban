@@ -17,7 +17,7 @@ create table departments (
   id uuid default gen_random_uuid() primary key,
   name text not null unique,
   icon text,
-  parent_id uuid references departments(id) on delete set null,
+  parent_ids uuid[] default '{}',
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 

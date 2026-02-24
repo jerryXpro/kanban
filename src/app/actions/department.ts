@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { isDepartmentManager } from '@/lib/api/admin'
 
-export async function createDepartment(name: string, icon: string | null = null, parentId: string | null = null) {
+export async function createDepartment(name: string, icon: string | null = null, parentIds: string[] = []) {
     const supabase = await createClient()
 
     // 1. Verify admin
@@ -21,8 +21,14 @@ export async function createDepartment(name: string, icon: string | null = null,
     let canCreate = false;
     if (profile?.is_admin) {
         canCreate = true;
-    } else if (profile?.is_department_admin && parentId) {
-        canCreate = await isDepartmentManager(parentId);
+    } else if (profile?.is_department_admin && parentIds.length > 0) {
+        canCreate = true;
+        for (const pid of parentIds) {
+            if (!(await isDepartmentManager(pid))) {
+                canCreate = false;
+                break;
+            }
+        }
     }
 
     if (!canCreate) return { error: 'Unauthorized. Only admins can create departments here.' }
@@ -30,7 +36,7 @@ export async function createDepartment(name: string, icon: string | null = null,
     // 2. Insert department
     const { data: deptData, error: deptError } = await supabase
         .from('departments')
-        .insert({ name, icon, parent_id: parentId })
+        .insert({ name, icon, parent_ids: parentIds })
         .select()
         .single()
 
@@ -81,7 +87,7 @@ export async function initializeBoard(departmentId: string, departmentName: stri
     return { success: true }
 }
 
-export async function updateDepartment(id: string, newName: string, icon: string | null = null, parentId: string | null = null) {
+export async function updateDepartment(id: string, newName: string, icon: string | null = null, parentIds: string[] = []) {
     const supabase = await createClient()
 
     // Use the hierarchical manager check
@@ -91,7 +97,7 @@ export async function updateDepartment(id: string, newName: string, icon: string
     // 2. Update department
     const { error } = await supabase
         .from('departments')
-        .update({ name: newName, icon, parent_id: parentId })
+        .update({ name: newName, icon, parent_ids: parentIds })
         .eq('id', id)
 
     if (error) {

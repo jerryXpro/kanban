@@ -30,24 +30,27 @@ export async function isDescendant(ancestorDeptId: string, childDeptId: string):
 
     const supabase = await createClient()
 
-    let currentId: string | null = childDeptId
+    let currentIds: string[] = [childDeptId]
     let attempts = 0
     const MAX_DEPTH = 10 // Prevent infinite loops in case of circular references
 
-    while (currentId && attempts < MAX_DEPTH) {
-        if (currentId === ancestorDeptId) return true
+    while (currentIds.length > 0 && attempts < MAX_DEPTH) {
+        if (currentIds.includes(ancestorDeptId)) return true
 
-        const { data: deptData, error } = await supabase
+        const { data, error } = await supabase
             .from('departments')
-            .select('parent_id')
-            .eq('id', currentId)
-            .single()
+            .select('parent_ids')
+            .in('id', currentIds)
 
-        if (error || !deptData || !deptData.parent_id) {
-            return false // Reached root without finding ancestor
+        if (error || !data) break
+
+        const nextIds = new Set<string>()
+        for (const row of data) {
+            const pIds = row.parent_ids as string[] | null
+            if (pIds) pIds.forEach(id => nextIds.add(id))
         }
 
-        currentId = deptData.parent_id
+        currentIds = Array.from(nextIds)
         attempts++
     }
 
@@ -57,29 +60,36 @@ export async function isDescendant(ancestorDeptId: string, childDeptId: string):
 // Retrieves all ancestor department IDs for a given department, starting from parent to root
 export async function getAncestorDepartmentIds(departmentId: string): Promise<string[]> {
     const supabase = await createClient()
-    const ancestors: string[] = []
+    const ancestors = new Set<string>()
 
-    let currentId: string | null = departmentId
+    let currentIds: string[] = [departmentId]
     let attempts = 0
     const MAX_DEPTH = 10
 
-    while (currentId && attempts < MAX_DEPTH) {
+    while (currentIds.length > 0 && attempts < MAX_DEPTH) {
         const { data, error } = await supabase
             .from('departments')
-            .select('parent_id')
-            .eq('id', currentId)
-            .single()
+            .select('parent_ids')
+            .in('id', currentIds)
 
-        const deptData = data as { parent_id: string | null } | null
+        if (error || !data) break
 
-        if (error || !deptData || !deptData.parent_id) {
-            break // Reached root or error
+        const nextIds = new Set<string>()
+        for (const row of data) {
+            const pIds = row.parent_ids as string[] | null
+            if (pIds) {
+                pIds.forEach(id => {
+                    if (!ancestors.has(id)) {
+                        ancestors.add(id)
+                        nextIds.add(id)
+                    }
+                })
+            }
         }
 
-        ancestors.push(deptData.parent_id)
-        currentId = deptData.parent_id
+        currentIds = Array.from(nextIds)
         attempts++
     }
 
-    return ancestors
+    return Array.from(ancestors)
 }

@@ -9,12 +9,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useLocaleStore } from '@/store/useLocaleStore'
 import { dictionaries } from '@/lib/i18n/dictionaries'
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { toast } from 'sonner'
 
 interface KanbanListProps {
     list: ListWithCards
@@ -47,13 +42,18 @@ export default function KanbanList({ list, cards, userProfile, isOverlay }: Kanb
 
     const handleDeleteList = async () => {
         if (!confirm(dict.delete_list_confirm)) return
-        await supabase.from('lists').delete().eq('id', list.id)
+        const { error } = await supabase.from('lists').delete().eq('id', list.id)
+        if (error) toast.error("Delete failed: " + error.message)
     }
 
     const handleSaveList = async () => {
         if (!editTitle.trim()) return
-        await supabase.from('lists').update({ title: editTitle.trim() }).eq('id', list.id)
-        setIsEditing(false)
+        const { error } = await supabase.from('lists').update({ title: editTitle.trim() }).eq('id', list.id)
+        if (error) {
+            toast.error("Rename failed: " + error.message)
+        } else {
+            setIsEditing(false)
+        }
     }
 
     const handleAddCard = async () => {
@@ -119,6 +119,7 @@ export default function KanbanList({ list, cards, userProfile, isOverlay }: Kanb
                         <input
                             autoFocus
                             value={editTitle}
+                            onPointerDown={(e) => e.stopPropagation()}
                             onChange={(e) => setEditTitle(e.target.value)}
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') handleSaveList()
@@ -141,26 +142,18 @@ export default function KanbanList({ list, cards, userProfile, isOverlay }: Kanb
                 {!list.is_global && (
                     isEditing ? (
                         <div className="flex gap-1 shrink-0 ml-2">
-                            <button onClick={handleSaveList} className="text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 px-2 py-1 rounded">{dict.save}</button>
+                            <button onPointerDown={(e) => e.stopPropagation()} onClick={() => handleSaveList()} className="text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 px-2 py-1 rounded">{dict.save}</button>
+                            <button onPointerDown={(e) => e.stopPropagation()} onClick={() => setIsEditing(false)} className="text-xs font-medium text-slate-600 bg-slate-200 hover:bg-slate-300 px-2 py-1 rounded">{dict.cancel}</button>
                         </div>
                     ) : (
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <button className="text-slate-400 hover:text-slate-600 focus:outline-none p-1 rounded shrink-0 ml-1">
-                                    <MoreHorizontal size={16} />
-                                </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuItem onSelect={() => setIsEditing(true)}>
-                                    <Pencil className="mr-2 h-4 w-4" />
-                                    <span>{dict.rename_list}</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onSelect={handleDeleteList} className="text-red-600 focus:text-red-600">
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    <span>{dict.delete_list}</span>
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                        <div className="flex gap-1 shrink-0 ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onPointerDown={(e) => e.stopPropagation()} onClick={() => setIsEditing(true)} className="text-slate-400 hover:text-indigo-600 focus:outline-none p-1 rounded" title={dict.rename_list}>
+                                <Pencil size={14} />
+                            </button>
+                            <button onPointerDown={(e) => e.stopPropagation()} onClick={() => handleDeleteList()} className="text-slate-400 hover:text-red-600 focus:outline-none p-1 rounded" title={dict.delete_list}>
+                                <Trash2 size={14} />
+                            </button>
+                        </div>
                     )
                 )}
             </div>
