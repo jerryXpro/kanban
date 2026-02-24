@@ -35,6 +35,7 @@ export default function UserManagement({ initialUsers }: { initialUsers: AdminPr
             .update({
                 role: userToSave.role,
                 is_admin: userToSave.is_admin,
+                is_department_admin: userToSave.is_department_admin,
                 can_manage_global_messages: userToSave.can_manage_global_messages,
                 can_manage_lists: userToSave.can_manage_lists,
             })
@@ -58,6 +59,7 @@ export default function UserManagement({ initialUsers }: { initialUsers: AdminPr
                             <th className="px-6 py-4">Department</th>
                             <th className="px-6 py-4">Display Title (Role)</th>
                             <th className="px-6 py-4 text-center">Global Admin</th>
+                            <th className="px-6 py-4 text-center">Dept Admin</th>
                             <th className="px-6 py-4 text-center">Manage Global Msgs</th>
                             <th className="px-6 py-4 text-center">Manage Lists</th>
                             <th className="px-6 py-4 text-center">Actions</th>
@@ -84,6 +86,12 @@ export default function UserManagement({ initialUsers }: { initialUsers: AdminPr
                                     <Checkbox
                                         checked={user.is_admin}
                                         onCheckedChange={(c) => handleToggle(user.id, 'is_admin', c as boolean)}
+                                    />
+                                </td>
+                                <td className="px-6 py-4 text-center">
+                                    <Checkbox
+                                        checked={user.is_department_admin}
+                                        onCheckedChange={(c) => handleToggle(user.id, 'is_department_admin', c as boolean)}
                                     />
                                 </td>
                                 <td className="px-6 py-4 text-center">

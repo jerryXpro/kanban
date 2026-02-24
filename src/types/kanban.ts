@@ -1,6 +1,8 @@
 export type Department = {
     id: string
     name: string
+    icon: string | null
+    parent_id: string | null
     created_at: string
 }
 
@@ -12,6 +14,7 @@ export type Profile = {
     department_id: string | null
     role: string
     is_admin: boolean
+    is_department_admin: boolean
     can_manage_global_messages: boolean
     can_manage_lists: boolean
 }
@@ -32,6 +35,7 @@ export type List = {
     title: string
     order: number
     is_global: boolean
+    target_department_id: string | null
 }
 
 export type Card = {

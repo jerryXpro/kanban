@@ -14,12 +14,10 @@ import {
     DragStartEvent,
     DragOverlay,
 } from '@dnd-kit/core'
-import {
-    SortableContext,
-    horizontalListSortingStrategy,
+horizontalListSortingStrategy,
     arrayMove,
 } from '@dnd-kit/sortable'
-import { ListWithCards, Card, List, Profile } from '@/types/kanban'
+import { ListWithCards, Card, List, Profile, Department } from '@/types/kanban'
 import KanbanList from './KanbanList'
 import KanbanCard from './KanbanCard'
 import { createClient } from '@/lib/supabase/client'
@@ -30,6 +28,7 @@ interface KanbanBoardProps {
     initialLists: ListWithCards[]
     userProfile?: Profile
     boardId: string
+    departments?: Department[]
 }
 
 // Float order calculation helper
@@ -39,7 +38,7 @@ const calculateNewOrder = (items: { order: number }[], newIndex: number) => {
     return (prevOrder + nextOrder) / 2.0
 }
 
-export default function KanbanBoard({ initialLists, userProfile, boardId }: KanbanBoardProps) {
+export default function KanbanBoard({ initialLists, userProfile, boardId, departments = [] }: KanbanBoardProps) {
     const [lists, setLists] = useState<ListWithCards[]>(initialLists)
     const [activeCard, setActiveCard] = useState<Card | null>(null)
     const [activeList, setActiveList] = useState<ListWithCards | null>(null)
@@ -49,10 +48,15 @@ export default function KanbanBoard({ initialLists, userProfile, boardId }: Kanb
     const [isAddingList, setIsAddingList] = useState(false)
     const [newListTitle, setNewListTitle] = useState('')
 
+    // New Hierarchy/Targeting State
+    const [isGlobalList, setIsGlobalList] = useState(false)
+    const [targetDepartmentId, setTargetDepartmentId] = useState<string>('none')
+
     const { locale } = useLocaleStore()
     const dict = dictionaries[locale].board
 
     const canAddList = userProfile?.can_manage_lists || false
+    const canManageGlobal = userProfile?.can_manage_global_messages || false
 
     const supabase = createClient()
 
@@ -330,15 +334,25 @@ export default function KanbanBoard({ initialLists, userProfile, boardId }: Kanb
         const maxOrder = lists.length > 0 ? Math.max(...lists.map(l => l.order)) : 0
         const newOrder = maxOrder + 65536 // Add a large gap for floating order
 
-        const { error } = await supabase.from('lists').insert({
+        const payload: any = {
             board_id: boardId,
             title: newListTitle.trim(),
             order: newOrder,
-            is_global: false
-        })
+        }
+
+        if (canManageGlobal) {
+            payload.is_global = isGlobalList
+            payload.target_department_id = targetDepartmentId !== 'none' ? targetDepartmentId : null
+        } else {
+            payload.is_global = false
+        }
+
+        const { error } = await supabase.from('lists').insert(payload)
 
         if (!error) {
             setNewListTitle('')
+            setIsGlobalList(false)
+            setTargetDepartmentId('none')
             setIsAddingList(false)
         } else {
             console.error(error)
@@ -374,12 +388,12 @@ export default function KanbanBoard({ initialLists, userProfile, boardId }: Kanb
                 {/* Add new list inline form / button conditionally based on role */}
                 {canAddList && (
                     isAddingList ? (
-                        <div className="w-[300px] shrink-0 h-fit p-3 rounded-xl bg-white/80 border-2 border-indigo-200 snap-center shadow-sm">
+                        <div className="w-[300px] shrink-0 h-fit p-3 rounded-xl bg-white/80 border-2 border-indigo-200 snap-center shadow-sm flex flex-col gap-2">
                             <input
                                 autoFocus
                                 type="text"
                                 placeholder={dict.enter_list_title}
-                                className="w-full p-2 mb-2 rounded border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-400 focus:outline-none"
+                                className="w-full p-2 rounded border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-400 focus:outline-none"
                                 value={newListTitle}
                                 onChange={(e) => setNewListTitle(e.target.value)}
                                 onKeyDown={(e) => {
@@ -390,7 +404,38 @@ export default function KanbanBoard({ initialLists, userProfile, boardId }: Kanb
                                     }
                                 }}
                             />
-                            <div className="flex items-center gap-2">
+
+                            {canManageGlobal && (
+                                <div className="flex flex-col gap-2 p-2 bg-slate-50 rounded-md border border-slate-100 text-xs">
+                                    <label className="flex items-center gap-2 cursor-pointer text-slate-700">
+                                        <input
+                                            type="checkbox"
+                                            checked={isGlobalList}
+                                            onChange={(e) => setIsGlobalList(e.target.checked)}
+                                            className="rounded text-indigo-600 focus:ring-indigo-500"
+                                        />
+                                        Make Global (All sub-departments)
+                                    </label>
+
+                                    {isGlobalList && departments && departments.length > 0 && (
+                                        <div className="flex flex-col gap-1 mt-1">
+                                            <span className="text-slate-500">Target Specific Sub-department:</span>
+                                            <select
+                                                value={targetDepartmentId}
+                                                onChange={(e) => setTargetDepartmentId(e.target.value)}
+                                                className="w-full p-1.5 rounded border border-slate-200 text-slate-700 focus:ring-1 focus:ring-indigo-400 outline-none"
+                                            >
+                                                <option value="none">-- All Sub-departments --</option>
+                                                {departments.map(d => (
+                                                    <option key={d.id} value={d.id}>{d.name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            <div className="flex items-center gap-2 mt-1">
                                 <button
                                     onClick={handleAddList}
                                     className="bg-indigo-600 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-indigo-700 transition"

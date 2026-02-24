@@ -16,6 +16,8 @@ drop table if exists public.departments cascade;
 create table departments (
   id uuid default gen_random_uuid() primary key,
   name text not null unique,
+  icon text,
+  parent_id uuid references departments(id) on delete set null,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
@@ -27,6 +29,7 @@ create table profiles (
   department_id uuid references departments(id) on delete set null,
   role text default '作業員',
   is_admin boolean default false,
+  is_department_admin boolean default false,
   can_manage_global_messages boolean default false,
   can_manage_lists boolean default false
 );
@@ -46,7 +49,8 @@ create table lists (
   board_id uuid references boards(id) on delete cascade,
   title text not null,
   "order" double precision not null,
-  is_global boolean default false
+  is_global boolean default false,
+  target_department_id uuid references departments(id) on delete set null
 );
 
 create table cards (

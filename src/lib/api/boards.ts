@@ -1,14 +1,15 @@
 import { createClient } from '@/lib/supabase/server'
 import { Card, BoardWithDetails, ListWithCards } from '@/types/kanban'
+import { getAncestorDepartmentIds } from '@/lib/api/admin'
 
 /**
  * Fetch a specific board and all its nested lists and cards.
- * Also handles injecting the "Global Announcements" list if the board is a department board.
+ * Also handles injecting "Global Announcements" and "Targeted Lists" from ancestor departments.
  */
 export async function getBoardData(boardId: string): Promise<BoardWithDetails | null> {
     const supabase = await createClient()
 
-    // 1. Fetch the requested Board
+    // 1. Fetch the requested Board to get its department_id
     const { data: boardData, error: boardError } = await supabase
         .from('boards')
         .select('*')
@@ -20,6 +21,8 @@ export async function getBoardData(boardId: string): Promise<BoardWithDetails | 
         return null
     }
 
+    const { department_id } = boardData
+
     // 2. Fetch the Lists belonging to this board (regular lists)
     const { data: listsData, error: listsError } = await supabase
         .from('lists')
@@ -29,18 +32,31 @@ export async function getBoardData(boardId: string): Promise<BoardWithDetails | 
 
     let allLists = listsData || []
 
-    // 3. Inject Global Announcements List
-    // We look for any list where is_global is true. 
-    // In a real app you might want only 1 specific global list per company.
-    const { data: globalLists } = await supabase
-        .from('lists')
-        .select('*')
-        .eq('is_global', true)
+    // 3. Inject Global Announcements and Targeted Lists from ancestors
+    const ancestorIds = await getAncestorDepartmentIds(department_id)
 
-    if (globalLists && globalLists.length > 0) {
-        // Put global list at the very beginning (leftmost column)
-        const mainGlobalList = globalLists[0]
-        allLists = [mainGlobalList, ...allLists]
+    if (ancestorIds.length > 0) {
+        // Find the boards belonging to these ancestors
+        const { data: ancestorBoards } = await supabase
+            .from('boards')
+            .select('id')
+            .in('department_id', ancestorIds)
+
+        const ancestorBoardIds = ancestorBoards?.map(b => b.id) || []
+
+        if (ancestorBoardIds.length > 0) {
+            // Fetch global and targeted lists from these ancestor boards
+            const { data: sharedLists } = await supabase
+                .from('lists')
+                .select('*')
+                .in('board_id', ancestorBoardIds)
+                .or(`is_global.eq.true,target_department_id.eq.${department_id}`)
+
+            if (sharedLists && sharedLists.length > 0) {
+                // Prepend shared lists to the left
+                allLists = [...sharedLists, ...allLists]
+            }
+        }
     }
 
     // 4. Fetch all Cards that belong to the combined lists

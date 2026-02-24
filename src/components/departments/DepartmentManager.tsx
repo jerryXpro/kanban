@@ -8,6 +8,8 @@ import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
 import { createDepartment, updateDepartment, deleteDepartment } from '@/app/actions/department'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
+import * as LucideIcons from 'lucide-react'
+import { LucideIcon } from 'lucide-react'
 import {
     Dialog,
     DialogContent,
@@ -24,6 +26,15 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
+
+const AVAILABLE_ICONS = ['Briefcase', 'Building2', 'Factory', 'Monitor', 'Cpu', 'Users', 'Wrench', 'Truck', 'Zap', 'Shield']
 
 export default function DepartmentManager({ initialDepartments, isAdmin }: { initialDepartments: Department[], isAdmin: boolean }) {
     const router = useRouter()
@@ -31,10 +42,14 @@ export default function DepartmentManager({ initialDepartments, isAdmin }: { ini
 
     const [isCreateOpen, setIsCreateOpen] = useState(false)
     const [createName, setCreateName] = useState('')
+    const [createIcon, setCreateIcon] = useState('Briefcase')
+    const [createParentId, setCreateParentId] = useState<string>('none')
     const [isCreating, setIsCreating] = useState(false)
 
     const [editingDept, setEditingDept] = useState<Department | null>(null)
     const [editName, setEditName] = useState('')
+    const [editIcon, setEditIcon] = useState('Briefcase')
+    const [editParentId, setEditParentId] = useState<string>('none')
     const [isEditing, setIsEditing] = useState(false)
 
     const [deletingDept, setDeletingDept] = useState<Department | null>(null)
@@ -43,7 +58,7 @@ export default function DepartmentManager({ initialDepartments, isAdmin }: { ini
     const handleCreate = async () => {
         if (!createName.trim()) return
         setIsCreating(true)
-        const res = await createDepartment(createName.trim())
+        const res = await createDepartment(createName.trim(), createIcon, createParentId === 'none' ? null : createParentId)
         setIsCreating(false)
         if (res.error) {
             toast.error(res.error)
@@ -60,7 +75,7 @@ export default function DepartmentManager({ initialDepartments, isAdmin }: { ini
     const handleEdit = async () => {
         if (!editingDept || !editName.trim()) return
         setIsEditing(true)
-        const res = await updateDepartment(editingDept.id, editName.trim())
+        const res = await updateDepartment(editingDept.id, editName.trim(), editIcon, editParentId === 'none' ? null : editParentId)
         setIsEditing(false)
         if (res.error) {
             toast.error(res.error)
@@ -103,44 +118,57 @@ export default function DepartmentManager({ initialDepartments, isAdmin }: { ini
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {departments.map((dept) => (
-                    <div key={dept.id} className="relative group">
-                        <Link href={`/department/${dept.id}`}>
-                            <div className="h-40 rounded-xl bg-white border border-slate-200 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all cursor-pointer flex flex-col items-start justify-between p-5">
-                                <div className="w-12 h-12 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /><rect width="20" height="14" x="2" y="6" rx="2" /></svg>
+                {departments.map((dept) => {
+                    const IconComponent = (LucideIcons as any)[dept.icon || 'Briefcase'] as LucideIcon || LucideIcons.Briefcase;
+                    const parentDept = departments.find(d => d.id === dept.parent_id);
+                    return (
+                        <div key={dept.id} className="relative group">
+                            <Link href={`/department/${dept.id}`}>
+                                <div className="h-40 rounded-xl bg-white border border-slate-200 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all cursor-pointer flex flex-col items-start justify-between p-5">
+                                    <div className="flex justify-between w-full items-start">
+                                        <div className="w-12 h-12 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                            <IconComponent className="w-6 h-6" />
+                                        </div>
+                                        {parentDept && (
+                                            <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-md max-w-[120px] truncate" title={`Child of ${parentDept.name}`}>
+                                                ↳ {parentDept.name}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <h3 className="text-lg font-semibold text-slate-800 pr-8 line-clamp-2 mt-4">{dept.name}</h3>
                                 </div>
-                                <h3 className="text-lg font-semibold text-slate-800 pr-8 line-clamp-2">{dept.name}</h3>
-                            </div>
-                        </Link>
+                            </Link>
 
-                        {/* Admin Controls overlay */}
-                        {isAdmin && (
-                            <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-700 bg-white/80 hover:bg-white backdrop-blur-sm shadow-sm">
-                                            <MoreHorizontal className="h-4 w-4" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        <DropdownMenuItem onClick={() => {
-                                            setEditingDept(dept)
-                                            setEditName(dept.name)
-                                        }}>
-                                            <Pencil className="h-4 w-4 mr-2" />
-                                            Rename
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem className="text-red-600 focus:bg-red-50 focus:text-red-700" onClick={() => setDeletingDept(dept)}>
-                                            <Trash2 className="h-4 w-4 mr-2" />
-                                            Delete
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            </div>
-                        )}
-                    </div>
-                ))}
+                            {/* Admin Controls overlay */}
+                            {isAdmin && (
+                                <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-700 bg-white/80 hover:bg-white backdrop-blur-sm shadow-sm">
+                                                <MoreHorizontal className="h-4 w-4" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuItem onClick={() => {
+                                                setEditingDept(dept)
+                                                setEditName(dept.name)
+                                                setEditIcon(dept.icon || 'Briefcase')
+                                                setEditParentId(dept.parent_id || 'none')
+                                            }}>
+                                                <Pencil className="h-4 w-4 mr-2" />
+                                                Rename / Edit
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem className="text-red-600 focus:bg-red-50 focus:text-red-700" onClick={() => setDeletingDept(dept)}>
+                                                <Trash2 className="h-4 w-4 mr-2" />
+                                                Delete
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </div>
+                            )}
+                        </div>
+                    )
+                })}
 
                 {/* New Department Placeholder */}
                 {isAdmin && (
@@ -173,6 +201,38 @@ export default function DepartmentManager({ initialDepartments, isAdmin }: { ini
                                 }}
                             />
                         </div>
+                        <div className="grid gap-2">
+                            <Label>Icon</Label>
+                            <div className="flex gap-2 flex-wrap">
+                                {AVAILABLE_ICONS.map(iconName => {
+                                    const IconComp = (LucideIcons as any)[iconName] as LucideIcon
+                                    return (
+                                        <button
+                                            key={iconName}
+                                            onClick={() => setCreateIcon(iconName)}
+                                            className={`p-2 rounded-md border ${createIcon === iconName ? 'bg-indigo-100 border-indigo-500 text-indigo-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                                            type="button"
+                                        >
+                                            <IconComp className="w-5 h-5" />
+                                        </button>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                        <div className="grid gap-2">
+                            <Label>Parent Department (Optional)</Label>
+                            <Select value={createParentId} onValueChange={setCreateParentId}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select parent department" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="none">-- None (Root Level) --</SelectItem>
+                                    {departments.map(d => (
+                                        <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsCreateOpen(false)} disabled={isCreating}>Cancel</Button>
@@ -200,6 +260,38 @@ export default function DepartmentManager({ initialDepartments, isAdmin }: { ini
                                     if (e.key === 'Enter') handleEdit()
                                 }}
                             />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label>Icon</Label>
+                            <div className="flex gap-2 flex-wrap">
+                                {AVAILABLE_ICONS.map(iconName => {
+                                    const IconComp = (LucideIcons as any)[iconName] as LucideIcon
+                                    return (
+                                        <button
+                                            key={iconName}
+                                            onClick={() => setEditIcon(iconName)}
+                                            className={`p-2 rounded-md border ${editIcon === iconName ? 'bg-indigo-100 border-indigo-500 text-indigo-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                                            type="button"
+                                        >
+                                            <IconComp className="w-5 h-5" />
+                                        </button>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                        <div className="grid gap-2">
+                            <Label>Parent Department</Label>
+                            <Select value={editParentId} onValueChange={setEditParentId}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select parent department" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="none">-- None (Root Level) --</SelectItem>
+                                    {departments.filter(d => d.id !== editingDept?.id).map(d => (
+                                        <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
                     </div>
                     <DialogFooter>

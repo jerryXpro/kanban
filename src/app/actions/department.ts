@@ -2,8 +2,9 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { isDepartmentManager } from '@/lib/api/admin'
 
-export async function createDepartment(name: string) {
+export async function createDepartment(name: string, icon: string | null = null, parentId: string | null = null) {
     const supabase = await createClient()
 
     // 1. Verify admin
@@ -12,16 +13,24 @@ export async function createDepartment(name: string) {
 
     const { data: profile } = await supabase
         .from('profiles')
-        .select('is_admin')
+        .select('is_admin, is_department_admin, department_id')
         .eq('id', user.id)
         .single()
 
-    if (!profile?.is_admin) return { error: 'Unauthorized. Only admins can create departments.' }
+    // To create a department, you must be a global admin, OR a department admin creating a sub-department under your own hierarchy
+    let canCreate = false;
+    if (profile?.is_admin) {
+        canCreate = true;
+    } else if (profile?.is_department_admin && parentId) {
+        canCreate = await isDepartmentManager(parentId);
+    }
+
+    if (!canCreate) return { error: 'Unauthorized. Only admins can create departments here.' }
 
     // 2. Insert department
     const { data: deptData, error: deptError } = await supabase
         .from('departments')
-        .insert({ name })
+        .insert({ name, icon, parent_id: parentId })
         .select()
         .single()
 
@@ -72,25 +81,17 @@ export async function initializeBoard(departmentId: string, departmentName: stri
     return { success: true }
 }
 
-export async function updateDepartment(id: string, newName: string) {
+export async function updateDepartment(id: string, newName: string, icon: string | null = null, parentId: string | null = null) {
     const supabase = await createClient()
 
-    // 1. Verify admin
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'Not authenticated' }
-
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('is_admin')
-        .eq('id', user.id)
-        .single()
-
-    if (!profile?.is_admin) return { error: 'Unauthorized' }
+    // Use the hierarchical manager check
+    const isManager = await isDepartmentManager(id)
+    if (!isManager) return { error: 'Unauthorized to update this department' }
 
     // 2. Update department
     const { error } = await supabase
         .from('departments')
-        .update({ name: newName })
+        .update({ name: newName, icon, parent_id: parentId })
         .eq('id', id)
 
     if (error) {
@@ -104,17 +105,8 @@ export async function updateDepartment(id: string, newName: string) {
 export async function deleteDepartment(id: string) {
     const supabase = await createClient()
 
-    // 1. Verify admin
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'Not authenticated' }
-
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('is_admin')
-        .eq('id', user.id)
-        .single()
-
-    if (!profile?.is_admin) return { error: 'Unauthorized' }
+    const isManager = await isDepartmentManager(id)
+    if (!isManager) return { error: 'Unauthorized to delete this department' }
 
     // 2. Delete department (Supabase cascade deletes boards, lists, cards)
     const { error } = await supabase
