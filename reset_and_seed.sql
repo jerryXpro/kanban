@@ -76,6 +76,9 @@ alter table cards enable row level security;
 alter table card_assignees enable row level security;
 
 create policy "Enable read access for all users" on departments for select using (true);
+create policy "Enable insert for authenticated users" on departments for insert with check (auth.role() = 'authenticated');
+create policy "Enable update for authenticated users" on departments for update using (auth.role() = 'authenticated');
+create policy "Enable delete for authenticated users" on departments for delete using (auth.role() = 'authenticated');
 create policy "Enable read access for all users" on profiles for select using (true);
 create policy "Enable read access for all users" on boards for select using (true);
 create policy "Enable read access for all users" on lists for select using (true);
