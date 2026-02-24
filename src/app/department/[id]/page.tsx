@@ -4,9 +4,9 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import KanbanBoard from '@/components/board/KanbanBoard'
 import { Button } from '@/components/ui/button'
-import { revalidatePath } from 'next/cache'
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
 import { I18nText } from '@/components/ui/I18nText'
+import InitializeBoardButton from '@/components/board/InitializeBoardButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -121,13 +121,7 @@ export default async function DepartmentBoardPage({
                         <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-4 opacity-70"><rect width="18" height="18" x="3" y="3" rx="2" /><path d="M7 7h.01" /><path d="M17 7h.01" /><path d="M7 17h.01" /><path d="M17 17h.01" /></svg>
                         <h2 className="text-xl font-medium mb-2">No Active Board</h2>
                         <p className="opacity-80 max-w-md text-center mb-6">This department doesn't have a Kanban board set up yet.</p>
-                        <form action={async () => {
-                            'use server'
-                            const { initializeBoard } = await import('@/app/actions/department')
-                            await initializeBoard(department.id, department.name)
-                        }}>
-                            <Button type="submit" className="bg-white text-indigo-900 hover:bg-indigo-50">Initialize Board</Button>
-                        </form>
+                        <InitializeBoardButton departmentId={department.id} departmentName={department.name} />
                     </div>
                 )}
             </main>
