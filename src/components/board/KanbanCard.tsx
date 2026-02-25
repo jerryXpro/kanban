@@ -164,8 +164,8 @@ export default function KanbanCard({ card, isGlobalList, userProfile, isOverlay,
                     {card.title}
                 </div>
 
-                {/* Show "⋯" menu for: non-special cards (anyone), OR special cards only if canManage */}
-                {((!isGlobalList && !isAnomaly) || canManage) && !isOverlay && (
+                {/* Show menu for all logged-in users; server actions enforce actual permissions */}
+                {!!userProfile && !isOverlay && (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <button
