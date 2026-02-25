@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dialog"
 import { useLocaleStore } from '@/store/useLocaleStore'
 import { dictionaries } from '@/lib/i18n/dictionaries'
+import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import RichTextEditor from '@/components/ui/RichTextEditor'
 import { translateContent } from '@/app/actions/ai'
