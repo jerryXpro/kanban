@@ -92,16 +92,20 @@ export async function updateDepartment(id: string, newName: string, icon: string
 
     // Use the hierarchical manager check
     const isManager = await isDepartmentManager(id)
+    console.log(`[updateDepartment] id: ${id}, isManager: ${isManager}`)
     if (!isManager) return { error: 'Unauthorized to update this department' }
 
     // 2. Update department
-    const { error } = await supabase
+    const { data, error } = await supabase
         .from('departments')
         .update({ name: newName, icon, parent_ids: parentIds, color })
         .eq('id', id)
+        .select()
+        .single()
 
-    if (error) {
-        return { error: error.message }
+    if (error || !data) {
+        console.error('Supabase Update Error:', error || 'No rows returned, RLS might have blocked the update.')
+        return { error: error?.message || '更新失敗：請確認您有足夠的權限，或是資料庫 RLS 設定是否正確。' }
     }
 
     revalidatePath('/')

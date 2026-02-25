@@ -96,6 +96,7 @@ export default function DepartmentManager({
         const res = await updateDepartment(editingDept.id, editName.trim(), editIcon, editParentIds, editColor)
         setIsEditing(false)
         if (res.error) {
+            console.error('Update Dept Error:', res.error)
             toast.error(res.error)
         } else {
             toast.success(dict.saving)

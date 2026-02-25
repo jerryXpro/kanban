@@ -15,13 +15,21 @@ export async function isDepartmentManager(departmentId: string): Promise<boolean
     if (!profile) return false
 
     // Global admins can manage everything
-    if (profile.is_admin) return true
+    if (profile.is_admin) {
+        console.log(`[isDeptManager] User is admin, returning true`)
+        return true
+    }
 
     // If not a department admin, they can't manage
-    if (!profile.is_department_admin || !profile.department_id) return false
+    if (!profile.is_department_admin || !profile.department_id) {
+        console.log(`[isDeptManager] User not dept admin, returning false`)
+        return false
+    }
 
     // Check if the target department is a descendant of the user's department
-    return isDescendant(profile.department_id, departmentId)
+    const isDesc = await isDescendant(profile.department_id, departmentId)
+    console.log(`[isDeptManager] isDescendant(${profile.department_id}, ${departmentId}): ${isDesc}`)
+    return isDesc
 }
 
 // Recursively queries upward to see if childDeptId is a descendant of ancestorDeptId
