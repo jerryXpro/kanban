@@ -67,13 +67,20 @@ export default function KanbanCard({ card, isGlobalList, userProfile, isOverlay,
 
     const handleDelete = async () => {
         if (!confirm(dict.delete_card_confirm)) return
-        await supabase.from('cards').delete().eq('id', card.id)
+        const { error } = await supabase.from('cards').delete().eq('id', card.id)
+        if (error) {
+            toast.error(`刪除失敗：${error.message}`)
+        }
     }
 
     const handleSave = async () => {
         if (!editTitle.trim()) return
-        await supabase.from('cards').update({ title: editTitle.trim(), description: editDescription.trim() }).eq('id', card.id)
-        setIsEditing(false)
+        const { error } = await supabase.from('cards').update({ title: editTitle.trim(), description: editDescription.trim() }).eq('id', card.id)
+        if (error) {
+            toast.error(`更新失敗：${error.message}`)
+        } else {
+            setIsEditing(false)
+        }
     }
 
     const handleTransfer = async () => {
