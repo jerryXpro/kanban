@@ -41,7 +41,8 @@ export async function createDepartment(name: string, icon: string | null = null,
         .single()
 
     if (deptError) {
-        return { error: deptError.message }
+        console.error('Create Dept DB Error:', deptError)
+        return { error: deptError.message || '資料庫新增錯誤，請確認權限或名稱是否重複。' }
     }
 
     // 3. Create a board for the new department automatically

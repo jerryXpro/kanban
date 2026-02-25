@@ -77,33 +77,45 @@ export default function DepartmentManager({
     const handleCreate = async () => {
         if (!createName.trim()) return
         setIsCreating(true)
-        const res = await createDepartment(createName.trim(), createIcon, createParentIds, createColor)
-        setIsCreating(false)
-        if (res.error) {
-            toast.error(res.error)
-        } else if (res.data) {
-            toast.success(dict.saving)
-            setDepartments([...departments, res.data as Department])
-            setIsCreateOpen(false)
-            setCreateName('')
-            router.refresh()
+        try {
+            const res = await createDepartment(createName.trim(), createIcon, createParentIds, createColor)
+            if (res?.error) {
+                toast.error(res.error)
+            } else if (res?.data) {
+                toast.success(dict.saving)
+                setDepartments([...departments, res.data as Department])
+                setIsCreateOpen(false)
+                setCreateName('')
+                router.refresh()
+            }
+        } catch (error: any) {
+            console.error("handleCreate Error:", error)
+            toast.error("伺服器發生非預期錯誤：" + error.message)
+        } finally {
+            setIsCreating(false)
         }
     }
 
     const handleEdit = async () => {
         if (!editingDept || !editName.trim()) return
         setIsEditing(true)
-        const res = await updateDepartment(editingDept.id, editName.trim(), editIcon, editParentIds, editColor)
-        setIsEditing(false)
-        if (res.error) {
-            console.error('Update Dept Error:', res.error)
-            toast.error(res.error)
-        } else {
-            toast.success(dict.saving)
-            setDepartments(departments.map(d => d.id === editingDept.id ? { ...d, name: editName.trim(), icon: editIcon, parent_ids: editParentIds, color: editColor } : d))
-            setEditingDept(null)
-            setEditName('')
-            router.refresh()
+        try {
+            const res = await updateDepartment(editingDept.id, editName.trim(), editIcon, editParentIds, editColor)
+            if (res?.error) {
+                console.error('Update Dept Error:', res.error)
+                toast.error(res.error)
+            } else {
+                toast.success(dict.saving)
+                setDepartments(departments.map(d => d.id === editingDept.id ? { ...d, name: editName.trim(), icon: editIcon, parent_ids: editParentIds, color: editColor } : d))
+                setEditingDept(null)
+                setEditName('')
+                router.refresh()
+            }
+        } catch (error: any) {
+            console.error("handleEdit Error:", error)
+            toast.error("伺服器發生非預期錯誤：" + error.message)
+        } finally {
+            setIsEditing(false)
         }
     }
 
