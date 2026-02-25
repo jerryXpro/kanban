@@ -26,6 +26,7 @@ import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import RichTextEditor from '@/components/ui/RichTextEditor'
 import { translateContent } from '@/app/actions/ai'
+import { reportAnomaly, updateCard, deleteCard } from '@/app/actions/cards'
 
 interface KanbanCardProps {
     card: Card
@@ -67,17 +68,17 @@ export default function KanbanCard({ card, isGlobalList, userProfile, isOverlay,
 
     const handleDelete = async () => {
         if (!confirm(dict.delete_card_confirm)) return
-        const { error } = await supabase.from('cards').delete().eq('id', card.id)
-        if (error) {
-            toast.error(`刪除失敗：${error.message}`)
+        const res = await deleteCard(card.id)
+        if (res.error) {
+            toast.error(res.error)
         }
     }
 
     const handleSave = async () => {
         if (!editTitle.trim()) return
-        const { error } = await supabase.from('cards').update({ title: editTitle.trim(), description: editDescription.trim() }).eq('id', card.id)
-        if (error) {
-            toast.error(`更新失敗：${error.message}`)
+        const res = await updateCard(card.id, editTitle, editDescription)
+        if (res.error) {
+            toast.error(res.error)
         } else {
             setIsEditing(false)
         }

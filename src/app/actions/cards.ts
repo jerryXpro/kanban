@@ -67,8 +67,44 @@ export async function reportAnomaly(currentDeptId: string, targetDeptId: string,
         return { error: `送出失敗：${insertError.message}` }
     }
 
-    // Refresh the target department's page if anyone is using it
     revalidatePath(`/department/${targetDeptId}`)
+    return { success: true }
+}
 
+/**
+ * Update a card's title and description via server action.
+ * Uses server-side Supabase client (with the user's session cookie),
+ * which correctly applies RLS with the user's identity — unlike the
+ * browser client which can silently fail on RLS-blocked writes.
+ */
+export async function updateCard(cardId: string, title: string, description: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: '尚未登入' }
+
+    const { error } = await supabase
+        .from('cards')
+        .update({ title: title.trim(), description: description.trim(), updated_at: new Date().toISOString() })
+        .eq('id', cardId)
+
+    if (error) return { error: `更新失敗：${error.message}` }
+    return { success: true }
+}
+
+/**
+ * Delete a card via server action.
+ * Uses server-side Supabase client (with the user's session cookie).
+ */
+export async function deleteCard(cardId: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: '尚未登入' }
+
+    const { error } = await supabase
+        .from('cards')
+        .delete()
+        .eq('id', cardId)
+
+    if (error) return { error: `刪除失敗：${error.message}` }
     return { success: true }
 }
