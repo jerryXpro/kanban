@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { isDepartmentManager } from '@/lib/api/admin'
 
-export async function createDepartment(name: string, icon: string | null = null, parentIds: string[] = []) {
+export async function createDepartment(name: string, icon: string | null = null, parentIds: string[] = [], color: string | null = null) {
     const supabase = await createClient()
 
     // 1. Verify admin
@@ -36,7 +36,7 @@ export async function createDepartment(name: string, icon: string | null = null,
     // 2. Insert department
     const { data: deptData, error: deptError } = await supabase
         .from('departments')
-        .insert({ name, icon, parent_ids: parentIds })
+        .insert({ name, icon, parent_ids: parentIds, color })
         .select()
         .single()
 
@@ -50,7 +50,7 @@ export async function createDepartment(name: string, icon: string | null = null,
         .insert({
             department_id: deptData.id,
             title: `${name} 板塊`,
-            background_color: '#4F46E5',
+            background_color: color || '#4F46E5',
             is_active: true
         })
 
@@ -87,7 +87,7 @@ export async function initializeBoard(departmentId: string, departmentName: stri
     return { success: true }
 }
 
-export async function updateDepartment(id: string, newName: string, icon: string | null = null, parentIds: string[] = []) {
+export async function updateDepartment(id: string, newName: string, icon: string | null = null, parentIds: string[] = [], color: string | null = null) {
     const supabase = await createClient()
 
     // Use the hierarchical manager check
@@ -97,7 +97,7 @@ export async function updateDepartment(id: string, newName: string, icon: string
     // 2. Update department
     const { error } = await supabase
         .from('departments')
-        .update({ name: newName, icon, parent_ids: parentIds })
+        .update({ name: newName, icon, parent_ids: parentIds, color })
         .eq('id', id)
 
     if (error) {

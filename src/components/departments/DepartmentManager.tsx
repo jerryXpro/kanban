@@ -26,30 +26,49 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select"
+
+import { useLocaleStore } from '@/store/useLocaleStore'
+import { dictionaries } from '@/lib/i18n/dictionaries'
 
 const AVAILABLE_ICONS = ['Briefcase', 'Building2', 'Factory', 'Monitor', 'Cpu', 'Users', 'Wrench', 'Truck', 'Zap', 'Shield']
 
-export default function DepartmentManager({ initialDepartments, isAdmin }: { initialDepartments: Department[], isAdmin: boolean }) {
+const AVAILABLE_COLORS = [
+    { name: 'Indigo', value: '#4F46E5', bg: 'bg-[#4F46E5]' },
+    { name: 'Rose', value: '#E11D48', bg: 'bg-[#E11D48]' },
+    { name: 'Emerald', value: '#10B981', bg: 'bg-[#10B981]' },
+    { name: 'Amber', value: '#F59E0B', bg: 'bg-[#F59E0B]' },
+    { name: 'Blue', value: '#3B82F6', bg: 'bg-[#3B82F6]' },
+    { name: 'Purple', value: '#8B5CF6', bg: 'bg-[#8B5CF6]' },
+    { name: 'Slate', value: '#64748B', bg: 'bg-[#64748B]' },
+]
+
+export default function DepartmentManager({
+    initialDepartments,
+    isAdmin,
+    manageableDepartmentIds
+}: {
+    initialDepartments: Department[],
+    isAdmin: boolean,
+    manageableDepartmentIds?: string[]
+}) {
     const router = useRouter()
+    const { locale } = useLocaleStore()
+    const dict = dictionaries[locale].departments
+
     const [departments, setDepartments] = useState<Department[]>(initialDepartments)
 
     const [isCreateOpen, setIsCreateOpen] = useState(false)
     const [createName, setCreateName] = useState('')
     const [createIcon, setCreateIcon] = useState('Briefcase')
     const [createParentIds, setCreateParentIds] = useState<string[]>([])
+    const [createColor, setCreateColor] = useState('#4F46E5')
     const [isCreating, setIsCreating] = useState(false)
 
     const [editingDept, setEditingDept] = useState<Department | null>(null)
     const [editName, setEditName] = useState('')
     const [editIcon, setEditIcon] = useState('Briefcase')
     const [editParentIds, setEditParentIds] = useState<string[]>([])
+    const [editColor, setEditColor] = useState('#4F46E5')
     const [isEditing, setIsEditing] = useState(false)
 
     const [deletingDept, setDeletingDept] = useState<Department | null>(null)
@@ -58,13 +77,12 @@ export default function DepartmentManager({ initialDepartments, isAdmin }: { ini
     const handleCreate = async () => {
         if (!createName.trim()) return
         setIsCreating(true)
-        const res = await createDepartment(createName.trim(), createIcon, createParentIds)
+        const res = await createDepartment(createName.trim(), createIcon, createParentIds, createColor)
         setIsCreating(false)
         if (res.error) {
             toast.error(res.error)
         } else if (res.data) {
-            toast.success('Department created successfully.')
-            // Optimistically update local state
+            toast.success(dict.saving)
             setDepartments([...departments, res.data as Department])
             setIsCreateOpen(false)
             setCreateName('')
@@ -75,14 +93,13 @@ export default function DepartmentManager({ initialDepartments, isAdmin }: { ini
     const handleEdit = async () => {
         if (!editingDept || !editName.trim()) return
         setIsEditing(true)
-        const res = await updateDepartment(editingDept.id, editName.trim(), editIcon, editParentIds)
+        const res = await updateDepartment(editingDept.id, editName.trim(), editIcon, editParentIds, editColor)
         setIsEditing(false)
         if (res.error) {
             toast.error(res.error)
         } else {
-            toast.success('Department renamed successfully.')
-            // Optimistically update local state
-            setDepartments(departments.map(d => d.id === editingDept.id ? { ...d, name: editName.trim() } : d))
+            toast.success(dict.saving)
+            setDepartments(departments.map(d => d.id === editingDept.id ? { ...d, name: editName.trim(), icon: editIcon, parent_ids: editParentIds, color: editColor } : d))
             setEditingDept(null)
             setEditName('')
             router.refresh()
@@ -97,8 +114,7 @@ export default function DepartmentManager({ initialDepartments, isAdmin }: { ini
         if (res.error) {
             toast.error(res.error)
         } else {
-            toast.success('Department deleted successfully.')
-            // Optimistically update local state
+            toast.success(dict.saving)
             setDepartments(departments.filter(d => d.id !== deletingDept.id))
             setDeletingDept(null)
             router.refresh()
@@ -109,23 +125,33 @@ export default function DepartmentManager({ initialDepartments, isAdmin }: { ini
         <div className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full">
             <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold text-slate-800">Departments</h2>
-                    <p className="text-slate-500 mt-1">Select a department to view its Kanban board.</p>
+                    <h2 className="text-2xl font-bold text-slate-800">{dict.title}</h2>
+                    <p className="text-slate-500 mt-1">{dict.subtitle}</p>
                 </div>
                 {isAdmin && (
-                    <Button onClick={() => setIsCreateOpen(true)} className="bg-indigo-600 hover:bg-indigo-700 shadow-sm text-white">Create Department</Button>
+                    <Button onClick={() => setIsCreateOpen(true)} className="bg-indigo-600 hover:bg-indigo-700 shadow-sm text-white">
+                        {dict.create_dept}
+                    </Button>
                 )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {departments.map((dept) => {
                     const IconComponent = (LucideIcons as any)[dept.icon || 'Briefcase'] as LucideIcon || LucideIcons.Briefcase;
+                    const isManager = isAdmin || (manageableDepartmentIds && manageableDepartmentIds.includes(dept.id));
+
                     return (
                         <div key={dept.id} className="relative group">
                             <Link href={`/department/${dept.id}`}>
-                                <div className="h-40 rounded-xl bg-white border border-slate-200 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all cursor-pointer flex flex-col items-start justify-between p-5">
+                                <div
+                                    className="h-40 rounded-xl bg-white border border-slate-200 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col items-start justify-between p-5 overflow-hidden"
+                                    style={{ borderTopWidth: '4px', borderTopColor: dept.color || '#4F46E5' }}
+                                >
                                     <div className="flex justify-between w-full items-start">
-                                        <div className="w-12 h-12 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                        <div
+                                            className="w-12 h-12 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform"
+                                            style={{ backgroundColor: `${dept.color || '#4F46E5'}15`, color: dept.color || '#4F46E5' }}
+                                        >
                                             <IconComponent className="w-6 h-6" />
                                         </div>
                                         {dept.parent_ids && dept.parent_ids.length > 0 && (
@@ -147,7 +173,7 @@ export default function DepartmentManager({ initialDepartments, isAdmin }: { ini
                             </Link>
 
                             {/* Admin Controls overlay */}
-                            {isAdmin && (
+                            {isManager && (
                                 <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
@@ -161,13 +187,14 @@ export default function DepartmentManager({ initialDepartments, isAdmin }: { ini
                                                 setEditName(dept.name)
                                                 setEditIcon(dept.icon || 'Briefcase')
                                                 setEditParentIds(dept.parent_ids || [])
+                                                setEditColor(dept.color || '#4F46E5')
                                             }}>
                                                 <Pencil className="h-4 w-4 mr-2" />
-                                                Rename / Edit
+                                                {dict.edit_dept}
                                             </DropdownMenuItem>
                                             <DropdownMenuItem className="text-red-600 focus:bg-red-50 focus:text-red-700" onClick={() => setDeletingDept(dept)}>
                                                 <Trash2 className="h-4 w-4 mr-2" />
-                                                Delete
+                                                {dict.delete_dept}
                                             </DropdownMenuItem>
                                         </DropdownMenuContent>
                                     </DropdownMenu>
@@ -181,7 +208,7 @@ export default function DepartmentManager({ initialDepartments, isAdmin }: { ini
                 {isAdmin && (
                     <div onClick={() => setIsCreateOpen(true)} className="h-40 rounded-xl bg-indigo-50 border-2 border-dashed border-indigo-200 flex flex-col items-center justify-center text-indigo-500 font-medium hover:bg-indigo-100 hover:border-indigo-300 transition-colors cursor-pointer">
                         <span className="text-2xl mb-2">+</span>
-                        Add Department
+                        {dict.add_dept}
                     </div>
                 )}
             </div>
@@ -190,26 +217,37 @@ export default function DepartmentManager({ initialDepartments, isAdmin }: { ini
             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
-                        <DialogTitle>Create Department</DialogTitle>
-                        <DialogDescription>
-                            Add a new department workspace. A new Kanban board will be created automatically.
-                        </DialogDescription>
+                        <DialogTitle>{dict.create_dept}</DialogTitle>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                         <div className="grid gap-2">
-                            <Label htmlFor="name">Department Name</Label>
+                            <Label htmlFor="name">{dict.dept_name}</Label>
                             <Input
                                 id="name"
                                 value={createName}
                                 onChange={(e) => setCreateName(e.target.value)}
-                                placeholder="e.g. 生產二課"
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter') handleCreate()
                                 }}
                             />
                         </div>
                         <div className="grid gap-2">
-                            <Label>Icon</Label>
+                            <Label>{dict.color}</Label>
+                            <div className="flex gap-2 flex-wrap">
+                                {AVAILABLE_COLORS.map(c => (
+                                    <button
+                                        key={c.value}
+                                        onClick={() => setCreateColor(c.value)}
+                                        className={`w-8 h-8 rounded-full border-2 transition-transform ${createColor === c.value ? 'border-slate-800 scale-110' : 'border-transparent hover:scale-105'}`}
+                                        style={{ backgroundColor: c.value }}
+                                        type="button"
+                                        title={c.name}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                        <div className="grid gap-2">
+                            <Label>{dict.icon}</Label>
                             <div className="flex gap-2 flex-wrap">
                                 {AVAILABLE_ICONS.map(iconName => {
                                     const IconComp = (LucideIcons as any)[iconName] as LucideIcon
@@ -227,9 +265,9 @@ export default function DepartmentManager({ initialDepartments, isAdmin }: { ini
                             </div>
                         </div>
                         <div className="grid gap-2">
-                            <Label>Parent Departments (Optional)</Label>
-                            <div className="flex flex-col gap-2 max-h-[150px] overflow-y-auto border border-slate-200 rounded-md p-3 bg-white">
-                                {departments.length === 0 && <span className="text-sm text-slate-400">No other departments available</span>}
+                            <Label>{dict.parent_dept}</Label>
+                            <div className="flex flex-col gap-2 max-h-[120px] overflow-y-auto border border-slate-200 rounded-md p-3 bg-white">
+                                {departments.length === 0 && <span className="text-sm text-slate-400">Not available</span>}
                                 {departments.map(d => (
                                     <label key={d.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-slate-50 p-1 rounded">
                                         <input
@@ -248,9 +286,9 @@ export default function DepartmentManager({ initialDepartments, isAdmin }: { ini
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsCreateOpen(false)} disabled={isCreating}>Cancel</Button>
+                        <Button variant="outline" onClick={() => setIsCreateOpen(false)} disabled={isCreating}>{dict.cancel}</Button>
                         <Button onClick={handleCreate} disabled={!createName.trim() || isCreating}>
-                            {isCreating ? 'Creating...' : 'Create'}
+                            {isCreating ? dict.creating : dict.save}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -260,11 +298,11 @@ export default function DepartmentManager({ initialDepartments, isAdmin }: { ini
             <Dialog open={!!editingDept} onOpenChange={(open) => !open && setEditingDept(null)}>
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
-                        <DialogTitle>Rename Department</DialogTitle>
+                        <DialogTitle>{dict.edit_dept}</DialogTitle>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                         <div className="grid gap-2">
-                            <Label htmlFor="edit-name">Department Name</Label>
+                            <Label htmlFor="edit-name">{dict.dept_name}</Label>
                             <Input
                                 id="edit-name"
                                 value={editName}
@@ -275,7 +313,22 @@ export default function DepartmentManager({ initialDepartments, isAdmin }: { ini
                             />
                         </div>
                         <div className="grid gap-2">
-                            <Label>Icon</Label>
+                            <Label>{dict.color}</Label>
+                            <div className="flex gap-2 flex-wrap">
+                                {AVAILABLE_COLORS.map(c => (
+                                    <button
+                                        key={c.value}
+                                        onClick={() => setEditColor(c.value)}
+                                        className={`w-8 h-8 rounded-full border-2 transition-transform ${editColor === c.value ? 'border-slate-800 scale-110' : 'border-transparent hover:scale-105'}`}
+                                        style={{ backgroundColor: c.value }}
+                                        type="button"
+                                        title={c.name}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                        <div className="grid gap-2">
+                            <Label>{dict.icon}</Label>
                             <div className="flex gap-2 flex-wrap">
                                 {AVAILABLE_ICONS.map(iconName => {
                                     const IconComp = (LucideIcons as any)[iconName] as LucideIcon
@@ -293,9 +346,9 @@ export default function DepartmentManager({ initialDepartments, isAdmin }: { ini
                             </div>
                         </div>
                         <div className="grid gap-2">
-                            <Label>Parent Departments</Label>
-                            <div className="flex flex-col gap-2 max-h-[150px] overflow-y-auto border border-slate-200 rounded-md p-3 bg-white">
-                                {departments.filter(d => d.id !== editingDept?.id).length === 0 && <span className="text-sm text-slate-400">No other departments available</span>}
+                            <Label>{dict.parent_dept}</Label>
+                            <div className="flex flex-col gap-2 max-h-[120px] overflow-y-auto border border-slate-200 rounded-md p-3 bg-white">
+                                {departments.filter(d => d.id !== editingDept?.id).length === 0 && <span className="text-sm text-slate-400">Not available</span>}
                                 {departments.filter(d => d.id !== editingDept?.id).map(d => (
                                     <label key={d.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-slate-50 p-1 rounded">
                                         <input
@@ -314,9 +367,9 @@ export default function DepartmentManager({ initialDepartments, isAdmin }: { ini
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setEditingDept(null)} disabled={isEditing}>Cancel</Button>
+                        <Button variant="outline" onClick={() => setEditingDept(null)} disabled={isEditing}>{dict.cancel}</Button>
                         <Button onClick={handleEdit} disabled={!editName.trim() || isEditing}>
-                            {isEditing ? 'Saving...' : 'Save changes'}
+                            {isEditing ? dict.saving : dict.save}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -326,17 +379,15 @@ export default function DepartmentManager({ initialDepartments, isAdmin }: { ini
             <Dialog open={!!deletingDept} onOpenChange={(open) => !open && setDeletingDept(null)}>
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
-                        <DialogTitle className="text-red-600">Delete Department</DialogTitle>
+                        <DialogTitle className="text-red-600">{dict.delete_dept}</DialogTitle>
                         <DialogDescription>
-                            Are you absolutely sure you want to delete <span className="font-bold text-slate-800">{deletingDept?.name}</span>?
-                            <br /><br />
-                            This action cannot be undone. This will permanently delete the department and <span className="font-bold">ALL</span> associated Kanban boards, lists, and cards.
+                            {dict.delete_confirm}
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter className="mt-4">
-                        <Button variant="outline" onClick={() => setDeletingDept(null)} disabled={isDeleting}>Cancel</Button>
+                        <Button variant="outline" onClick={() => setDeletingDept(null)} disabled={isDeleting}>{dict.cancel}</Button>
                         <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
-                            {isDeleting ? 'Deleting...' : 'Yes, delete department'}
+                            {isDeleting ? '...' : dict.delete_dept}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

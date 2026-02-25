@@ -16,9 +16,10 @@ interface KanbanListProps {
     cards: Card[]
     userProfile?: Profile
     isOverlay?: boolean
+    departments?: { id: string, name: string }[]
 }
 
-export default function KanbanList({ list, cards, userProfile, isOverlay }: KanbanListProps) {
+export default function KanbanList({ list, cards, userProfile, isOverlay, departments = [] }: KanbanListProps) {
     const { setNodeRef, attributes, listeners, transform, transition, isDragging } =
         useSortable({
             id: list.id,
@@ -34,6 +35,7 @@ export default function KanbanList({ list, cards, userProfile, isOverlay }: Kanb
     // Edit List State
     const [isEditing, setIsEditing] = useState(false)
     const [editTitle, setEditTitle] = useState(list.title)
+    const [editColor, setEditColor] = useState(list.color || '#f1f5f9')
 
     const { locale } = useLocaleStore()
     const dict = dictionaries[locale].board
@@ -48,7 +50,7 @@ export default function KanbanList({ list, cards, userProfile, isOverlay }: Kanb
 
     const handleSaveList = async () => {
         if (!editTitle.trim()) return
-        const { error } = await supabase.from('lists').update({ title: editTitle.trim() }).eq('id', list.id)
+        const { error } = await supabase.from('lists').update({ title: editTitle.trim(), color: editColor }).eq('id', list.id)
         if (error) {
             toast.error("Rename failed: " + error.message)
         } else {
@@ -85,6 +87,8 @@ export default function KanbanList({ list, cards, userProfile, isOverlay }: Kanb
         transform: CSS.Translate.toString(transform),
     }
 
+    const listBgStyle = list.is_global ? {} : { backgroundColor: list.color || '#f1f5f9' }
+
     if (isDragging) {
         return (
             <div
@@ -98,11 +102,11 @@ export default function KanbanList({ list, cards, userProfile, isOverlay }: Kanb
     return (
         <div
             ref={setNodeRef}
-            style={style}
+            style={{ ...style, ...listBgStyle }}
             className={`w-[300px] shrink-0 h-full max-h-[85vh] flex flex-col rounded-xl shadow-sm snap-center transition-all ${isOverlay ? 'shadow-2xl cursor-grabbing' : ''
                 } ${list.is_global
                     ? 'bg-amber-50/90 border border-amber-200 backdrop-blur-md'
-                    : 'bg-slate-100/80 backdrop-blur-md'
+                    : 'border border-slate-200/50'
                 }`}
         >
             {/* List Header (Drag Handle for the List) */}
@@ -116,17 +120,30 @@ export default function KanbanList({ list, cards, userProfile, isOverlay }: Kanb
             >
                 <div className="flex items-center gap-2 overflow-hidden flex-1">
                     {isEditing ? (
-                        <input
-                            autoFocus
-                            value={editTitle}
-                            onPointerDown={(e) => e.stopPropagation()}
-                            onChange={(e) => setEditTitle(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleSaveList()
-                                if (e.key === 'Escape') setIsEditing(false)
-                            }}
-                            className="bg-white px-2 py-1 rounded text-sm font-semibold text-slate-800 border-2 border-indigo-400 focus:outline-none w-full shadow-sm"
-                        />
+                        <div className="flex flex-col gap-2 w-full pr-2">
+                            <input
+                                autoFocus
+                                value={editTitle}
+                                onPointerDown={(e) => e.stopPropagation()}
+                                onChange={(e) => setEditTitle(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleSaveList()
+                                    if (e.key === 'Escape') setIsEditing(false)
+                                }}
+                                className="bg-white px-2 py-1 rounded text-sm font-semibold text-slate-800 border-2 border-indigo-400 focus:outline-none w-full shadow-sm"
+                            />
+                            <div className="flex items-center gap-1.5" onPointerDown={e => e.stopPropagation()}>
+                                {['#f1f5f9', '#fee2e2', '#fef3c7', '#dcfce7', '#e0e7ff', '#f3e8ff', '#fce7f3'].map(c => (
+                                    <button
+                                        key={c}
+                                        type="button"
+                                        onClick={() => setEditColor(c)}
+                                        className={`w-4 h-4 rounded-full border ${editColor === c ? 'border-slate-800 scale-110 ring-1 ring-slate-800 ring-offset-1' : 'border-slate-300'} transition-transform hover:scale-110`}
+                                        style={{ backgroundColor: c }}
+                                    />
+                                ))}
+                            </div>
+                        </div>
                     ) : (
                         <span className="truncate">{list.title}</span>
                     )}
@@ -147,10 +164,20 @@ export default function KanbanList({ list, cards, userProfile, isOverlay }: Kanb
                         </div>
                     ) : (
                         <div className="flex gap-1 shrink-0 ml-1 opacity-60 hover:opacity-100 transition-opacity">
-                            <button onPointerDown={(e) => e.stopPropagation()} onClick={() => setIsEditing(true)} className="text-slate-400 hover:text-indigo-600 focus:outline-none p-1.5 rounded bg-slate-200/50 hover:bg-slate-200 transition-colors" title={dict.rename_list}>
+                            <button
+                                onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); setIsEditing(true); }}
+                                onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
+                                className="text-slate-400 hover:text-indigo-600 focus:outline-none p-1.5 rounded bg-slate-200/50 hover:bg-slate-200 transition-colors"
+                                title={dict.rename_list}
+                            >
                                 <Pencil size={14} />
                             </button>
-                            <button onPointerDown={(e) => e.stopPropagation()} onClick={() => handleDeleteList()} className="text-slate-400 hover:text-red-600 focus:outline-none p-1.5 rounded bg-slate-200/50 hover:bg-red-50 transition-colors" title={dict.delete_list}>
+                            <button
+                                onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); handleDeleteList(); }}
+                                onClick={(e) => { e.stopPropagation(); handleDeleteList(); }}
+                                className="text-slate-400 hover:text-red-600 focus:outline-none p-1.5 rounded bg-slate-200/50 hover:bg-red-50 transition-colors"
+                                title={dict.delete_list}
+                            >
                                 <Trash2 size={14} />
                             </button>
                         </div>
@@ -162,7 +189,7 @@ export default function KanbanList({ list, cards, userProfile, isOverlay }: Kanb
             <div className="flex-1 p-2 overflow-y-auto overflow-x-hidden flex flex-col gap-2 min-h-[100px]">
                 <SortableContext items={cards.map((c) => c.id)} strategy={verticalListSortingStrategy}>
                     {cards.map((card) => (
-                        <KanbanCard key={card.id} card={card} isGlobalList={list.is_global} userProfile={userProfile} />
+                        <KanbanCard key={card.id} card={card} isGlobalList={list.is_global} userProfile={userProfile} departments={departments} />
                     ))}
                 </SortableContext>
             </div>

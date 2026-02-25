@@ -3,6 +3,7 @@ export type Department = {
     name: string
     icon: string | null
     parent_ids: string[] | null
+    color?: string | null
     created_at: string
 }
 
@@ -36,6 +37,7 @@ export type List = {
     order: number
     is_global: boolean
     target_department_id: string | null
+    color?: string | null
 }
 
 export type Card = {
@@ -48,6 +50,11 @@ export type Card = {
     order: number
     due_date: string | null
     created_by: string | null
+    card_type?: string
+    source_department_id?: string | null
+    status?: string
+    cover_image_url?: string | null
+    labels?: any[]
 }
 
 export type CardAssignee = {

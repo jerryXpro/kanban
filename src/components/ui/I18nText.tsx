@@ -3,8 +3,9 @@
 import { useLocaleStore } from '@/store/useLocaleStore'
 import { dictionaries } from '@/lib/i18n/dictionaries'
 import { useEffect, useState } from 'react'
+import type { Dictionary } from '@/lib/i18n/dictionaries'
 
-export function I18nText({ ns, textKey }: { ns: 'board' | 'header', textKey: string }) {
+export function I18nText({ ns, textKey }: { ns: keyof Dictionary, textKey: string }) {
     const { locale } = useLocaleStore()
     const [mounted, setMounted] = useState(false)
 

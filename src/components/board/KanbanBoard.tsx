@@ -383,7 +383,7 @@ export default function KanbanBoard({ initialLists, userProfile, boardId, depart
             <div className="flex w-full gap-6 overflow-x-auto pb-8 snap-x snap-mandatory px-4 md:px-8">
                 <SortableContext items={lists.map((l) => l.id)} strategy={horizontalListSortingStrategy}>
                     {lists.map((list) => (
-                        <KanbanList key={list.id} list={list} cards={list.cards} userProfile={userProfile} />
+                        <KanbanList key={list.id} list={list} cards={list.cards} userProfile={userProfile} departments={departments} />
                     ))}
                 </SortableContext>
 
@@ -468,9 +468,9 @@ export default function KanbanBoard({ initialLists, userProfile, boardId, depart
 
             <DragOverlay>
                 {activeList ? (
-                    <KanbanList list={activeList} cards={activeList.cards} userProfile={userProfile} isOverlay />
+                    <KanbanList list={activeList} cards={activeList.cards} userProfile={userProfile} isOverlay departments={departments} />
                 ) : null}
-                {activeCard ? <KanbanCard card={activeCard} isGlobalList={false} userProfile={userProfile} isOverlay /> : null}
+                {activeCard ? <KanbanCard card={activeCard} isGlobalList={false} userProfile={userProfile} isOverlay departments={departments} /> : null}
             </DragOverlay>
         </DndContext>
     )
