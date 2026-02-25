@@ -221,7 +221,7 @@ export default function KanbanCard({ card, isGlobalList, userProfile, isOverlay,
                 {...(!isGlobalList ? attributes : {})}
                 {...(!isGlobalList ? listeners : {})}
                 className={`bg-white p-3 rounded-lg shadow-sm border transition-all ${isGlobalList
-                    ? 'border-amber-200 hover:border-amber-400 hover:shadow-md cursor-default'
+                    ? 'group border-amber-200 hover:border-amber-400 hover:shadow-md cursor-default'
                     : isAnomaly
                         ? 'border-red-300 ring-1 ring-red-50 group hover:shadow-md hover:border-red-400 cursor-grab active:cursor-grabbing bg-white/95'
                         : 'border-slate-200 group hover:shadow-md hover:border-indigo-300 cursor-grab active:cursor-grabbing'
