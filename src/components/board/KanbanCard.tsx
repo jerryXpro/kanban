@@ -62,6 +62,9 @@ export default function KanbanCard({ card, isGlobalList, userProfile, isOverlay,
     const [isTranslating, setIsTranslating] = useState(false)
     const [showTranslation, setShowTranslation] = useState(false)
 
+    // A user can manage (edit/delete) a card if they are admin, dept admin, or can manage global messages
+    const canManage = !!(userProfile?.is_admin || userProfile?.is_department_admin || userProfile?.can_manage_global_messages)
+
     const handleDelete = async () => {
         if (!confirm(dict.delete_card_confirm)) return
         await supabase.from('cards').delete().eq('id', card.id)
@@ -248,7 +251,8 @@ export default function KanbanCard({ card, isGlobalList, userProfile, isOverlay,
                         {card.title}
                     </div>
 
-                    {(!isGlobalList || userProfile?.can_manage_global_messages) && !isOverlay && (
+                    {/* Show menu if: not a global list (anyone can manage their own), OR if global list / anomaly then only managers */}
+                    {((!isGlobalList && !isAnomaly) || canManage) && !isOverlay && (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <button className="text-slate-400 hover:text-slate-600 focus:outline-none shrink-0 opacity-0 group-hover:opacity-100 transition-opacity bg-white hover:bg-slate-100 rounded p-0.5" onPointerDown={(e) => e.stopPropagation()}>

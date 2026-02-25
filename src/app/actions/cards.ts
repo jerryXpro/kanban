@@ -10,17 +10,18 @@ export async function reportAnomaly(currentDeptId: string, targetDeptId: string,
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'Not authenticated' }
 
-    // 2. Find target department's board
+    // 2. Find target department's board (include boards where is_active is null or true)
     const { data: boardData, error: boardError } = await supabase
         .from('boards')
         .select('id')
         .eq('department_id', targetDeptId)
-        .eq('is_active', true)
+        .neq('is_active', false)
         .limit(1)
         .single()
 
     if (boardError || !boardData) {
-        return { error: 'Target department does not have an active board.' }
+        const errMsg = boardError?.message || 'No board found'
+        return { error: `目標部門沒有可用的看板。(${errMsg})` }
     }
 
     // 3. Find target board's first list
@@ -33,7 +34,8 @@ export async function reportAnomaly(currentDeptId: string, targetDeptId: string,
         .single()
 
     if (listError || !listData) {
-        return { error: 'Target board has no lists. Cannot create anomaly card.' }
+        const errMsg = listError?.message || 'No lists found'
+        return { error: `目標看板沒有任何清單，無法建立異常卡片。(${errMsg})` }
     }
 
     // 4. Determine new order
@@ -62,7 +64,7 @@ export async function reportAnomaly(currentDeptId: string, targetDeptId: string,
         })
 
     if (insertError) {
-        return { error: insertError.message }
+        return { error: `送出失敗：${insertError.message}` }
     }
 
     // Refresh the target department's page if anyone is using it

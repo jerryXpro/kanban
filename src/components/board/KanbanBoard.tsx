@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
     DndContext,
     closestCorners,
@@ -62,9 +62,28 @@ export default function KanbanBoard({ initialLists, userProfile, boardId, depart
 
     const supabase = createClient()
 
+    // Track ONLY the list IDs that belong to THIS board (not inherited shared lists from ancestors).
+    // This prevents Realtime card INSERTs (e.g. anomaly cards inserted into a parent dept's list)
+    // from accidentally appearing in sibling department boards via Realtime broadcast.
+    const ownBoardListIdsRef = useRef<Set<string>>(new Set())
+
     useEffect(() => {
         setIsMounted(true)
     }, [])
+
+    // Keep ownBoardListIdsRef populated with the lists that belong to this specific board
+    useEffect(() => {
+        const fetchOwnListIds = async () => {
+            const { data } = await supabase
+                .from('lists')
+                .select('id')
+                .eq('board_id', boardId)
+            if (data) {
+                ownBoardListIdsRef.current = new Set(data.map((l: { id: string }) => l.id))
+            }
+        }
+        fetchOwnListIds()
+    }, [boardId])
 
     // -------------------------------------------------------------
     // Real-time Subscription Setup
@@ -79,6 +98,12 @@ export default function KanbanBoard({ initialLists, userProfile, boardId, depart
                     const oldCard = payload.old as Card
 
                     if (payload.eventType === 'INSERT') {
+                        // Only handle INSERT for lists that belong to THIS board.
+                        // Anomaly cards are inserted into the PARENT dept's list, so their
+                        // list_id won't be in ownBoardListIds — this prevents them from
+                        // showing up on sibling department boards via Realtime.
+                        if (!ownBoardListIdsRef.current.has(newCard.list_id)) return
+
                         setLists(current => current.map(list =>
                             list.id === newCard.list_id
                                 ? { ...list, cards: [...list.cards, newCard].sort((a, b) => a.order - b.order) }
@@ -114,6 +139,7 @@ export default function KanbanBoard({ initialLists, userProfile, boardId, depart
                     if (payload.eventType === 'INSERT') {
                         // Only add if it belongs to this board
                         if (newList.board_id === boardId) {
+                            ownBoardListIdsRef.current.add(newList.id)
                             setLists(current => {
                                 // Prevent duplicates if the client created it and already pushed it somehow
                                 if (current.find(l => l.id === newList.id)) return current
@@ -125,6 +151,7 @@ export default function KanbanBoard({ initialLists, userProfile, boardId, depart
                             list.id === newList.id ? { ...list, ...newList } : list
                         ).sort((a, b) => a.order - b.order))
                     } else if (payload.eventType === 'DELETE') {
+                        ownBoardListIdsRef.current.delete(oldList.id)
                         setLists(current => current.filter(list => list.id !== oldList.id))
                     }
                 }
