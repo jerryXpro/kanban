@@ -2,6 +2,7 @@ import { getSetting } from '@/lib/api/settings'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import AdminSettingsForm from './AdminSettingsForm'
+import { DEFAULT_USER_GUIDE } from '@/lib/constants'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,7 +27,7 @@ export default async function AdminSettingsPage() {
 
     // Fetch current settings on the server
     const currentWorkspaceName = await getSetting('workspace_name', '看板管理系統')
-    const currentUserGuide = await getSetting('user_guide', '')
+    const currentUserGuide = await getSetting('user_guide', DEFAULT_USER_GUIDE)
 
     return <AdminSettingsForm
         initialWorkspaceName={currentWorkspaceName}

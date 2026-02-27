@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, BookOpen } from 'lucide-react'
+import { DEFAULT_USER_GUIDE } from '@/lib/constants'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,7 +18,7 @@ export default async function GuidePage() {
 
     // 2. Fetch the workspace name and the user guide content
     const workspaceName = await getSetting('workspace_name', '看板管理系統')
-    const userGuide = await getSetting('user_guide', '')
+    const userGuide = await getSetting('user_guide', DEFAULT_USER_GUIDE)
 
     // 3. Fallback content if admin hasn't set anything
     const hasGuide = userGuide && userGuide.trim() !== '' && userGuide !== '<p></p>'
