@@ -34,6 +34,14 @@ export default function MainHeader({ userEmail, isAdmin, workspaceName }: MainHe
 
             <div className="flex items-center gap-4">
                 <LanguageSwitcher />
+
+                {/* Guide is available to everyone */}
+                <Link href="/guide">
+                    <Button variant="outline" size="sm" className="h-8 text-sm text-indigo-700 px-3 bg-indigo-50 border-indigo-200 hover:bg-indigo-100 hover:text-indigo-800 rounded-md font-medium shadow-sm cursor-pointer">
+                        📘 操作說明
+                    </Button>
+                </Link>
+
                 {isAdmin && (
                     <div className="flex items-center gap-2">
                         <Link href="/admin/settings">

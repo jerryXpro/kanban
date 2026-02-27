@@ -24,8 +24,12 @@ export default async function AdminSettingsPage() {
         redirect('/')
     }
 
-    // Fetch current setting on the server
+    // Fetch current settings on the server
     const currentWorkspaceName = await getSetting('workspace_name', '看板管理系統')
+    const currentUserGuide = await getSetting('user_guide', '')
 
-    return <AdminSettingsForm initialWorkspaceName={currentWorkspaceName} />
+    return <AdminSettingsForm
+        initialWorkspaceName={currentWorkspaceName}
+        initialUserGuide={currentUserGuide}
+    />
 }

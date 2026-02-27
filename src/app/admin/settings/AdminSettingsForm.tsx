@@ -6,14 +6,17 @@ import Link from 'next/link'
 import { ArrowLeft, Save } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { updateSetting } from '@/lib/api/settings'
+import RichTextEditor from '@/components/ui/RichTextEditor'
 
 interface AdminSettingsFormProps {
     initialWorkspaceName: string
+    initialUserGuide: string
 }
 
-export default function AdminSettingsForm({ initialWorkspaceName }: AdminSettingsFormProps) {
+export default function AdminSettingsForm({ initialWorkspaceName, initialUserGuide }: AdminSettingsFormProps) {
     const router = useRouter()
     const [workspaceName, setWorkspaceName] = useState(initialWorkspaceName)
+    const [userGuide, setUserGuide] = useState(initialUserGuide)
     const [isSaving, setIsSaving] = useState(false)
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
@@ -27,22 +30,30 @@ export default function AdminSettingsForm({ initialWorkspaceName }: AdminSetting
         setMessage(null)
 
         try {
-            const result = await updateSetting('workspace_name', workspaceName.trim())
-            if (result.success) {
-                setMessage({ type: 'success', text: '設定已更新' })
-                router.refresh()
+            // Update all settings concurrently
+            const results = await Promise.all([
+                updateSetting('workspace_name', workspaceName.trim()),
+                updateSetting('user_guide', userGuide)
+            ])
+
+            // Check if any failed
+            const errorResult = results.find(r => !r.success)
+
+            if (errorResult) {
+                setMessage({ type: 'error', text: errorResult.error || '更新設定失敗' })
             } else {
-                setMessage({ type: 'error', text: result.error || '更新失敗' })
+                setMessage({ type: 'success', text: '所有設定已成功更新' })
+                router.refresh()
             }
         } catch (error: any) {
-            setMessage({ type: 'error', text: error.message || '發生錯誤' })
+            setMessage({ type: 'error', text: error.message || '發生未知錯誤' })
         } finally {
             setIsSaving(false)
         }
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
+        <div className="min-h-screen bg-slate-50 flex flex-col font-sans mb-20">
             <header className="bg-white border-b border-slate-200 h-16 flex items-center px-6 shrink-0 z-10 sticky top-0">
                 <div className="flex items-center justify-between w-full max-w-7xl mx-auto">
                     <div className="flex items-center gap-4">
@@ -57,52 +68,80 @@ export default function AdminSettingsForm({ initialWorkspaceName }: AdminSetting
                 </div>
             </header>
 
-            <main className="flex-1 w-full max-w-3xl mx-auto p-6 md:p-8">
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div className="p-6 border-b border-slate-100">
-                        <h2 className="text-lg font-semibold text-slate-800">基本設定</h2>
-                        <p className="text-sm text-slate-500 mt-1">變更應用程式的顯示資訊。</p>
+            <main className="flex-1 w-full max-w-4xl mx-auto p-6 md:p-8 space-y-6">
+
+                {/* 1. 基本設定 */}
+                <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div className="p-6 border-b border-slate-100 bg-slate-50/50">
+                        <h2 className="text-lg font-semibold text-slate-800">基本顯示設定</h2>
+                        <p className="text-sm text-slate-500 mt-1">變更應用程式的基礎資訊。</p>
                     </div>
 
-                    <div className="p-6 space-y-6">
-                        <div className="space-y-4">
-                            <div>
-                                <label htmlFor="workspaceName" className="block text-sm font-medium text-slate-700 mb-1">
-                                    系統名稱 (Workspace Name)
-                                </label>
-                                <input
-                                    id="workspaceName"
-                                    type="text"
-                                    value={workspaceName}
-                                    onChange={(e) => setWorkspaceName(e.target.value)}
-                                    className="w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900"
-                                    placeholder="例如：看板管理系統"
-                                />
-                                <p className="mt-1 text-xs text-slate-500">
-                                    這將會顯示在系統標題列以及登入頁面等地方。
-                                </p>
-                            </div>
-
-                            {message && (
-                                <div className={`p-3 rounded-md text-sm ${message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-                                    {message.text}
-                                </div>
-                            )}
-
-                            <div className="pt-4 flex justify-end">
-                                <Button
-                                    onClick={handleSave}
-                                    disabled={isSaving}
-                                    className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white"
-                                >
-                                    <Save size={16} />
-                                    {isSaving ? '儲存中...' : '儲存設定'}
-                                </Button>
-                            </div>
+                    <div className="p-6">
+                        <div className="max-w-xl">
+                            <label htmlFor="workspaceName" className="block text-sm font-medium text-slate-700 mb-1">
+                                系統名稱 (Workspace Name)
+                            </label>
+                            <input
+                                id="workspaceName"
+                                type="text"
+                                value={workspaceName}
+                                onChange={(e) => setWorkspaceName(e.target.value)}
+                                className="w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900"
+                                placeholder="例如：看板管理系統"
+                            />
+                            <p className="mt-2 text-xs text-slate-500">
+                                這將會顯示在系統標題列、導覽列以及登入頁面等地方。
+                            </p>
                         </div>
                     </div>
+                </section>
+
+                {/* 2. 系統操作說明 */}
+                <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mt-6">
+                    <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                        <div>
+                            <h2 className="text-lg font-semibold text-slate-800">系統操作說明編輯區</h2>
+                            <p className="text-sm text-slate-500 mt-1">
+                                撰寫與更新給全體使用者觀看的操作手冊或說明。您可以插入圖片、連結與排版格式。
+                            </p>
+                        </div>
+                        <a href="/guide" target="_blank" className="text-indigo-600 text-sm hover:underline font-medium">預覽線上說明</a>
+                    </div>
+
+                    <div className="p-6">
+                        <div className="border border-slate-200 rounded-md min-h-[400px] overflow-hidden focus-within:ring-2 focus-within:ring-indigo-500 transition-all">
+                            <RichTextEditor
+                                value={userGuide}
+                                onChange={setUserGuide}
+                                placeholder="請在此輸入操作說明內容..."
+                            />
+                        </div>
+                    </div>
+                </section>
+
+                {/* Status Message and Save Button */}
+                <div className="sticky bottom-6 bg-white/95 backdrop-blur-sm p-4 rounded-xl shadow-lg border border-slate-200 flex items-center justify-between">
+                    <div className="flex-1 mr-4">
+                        {message && (
+                            <div className={`px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 ${message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                                {message.type === 'success' ? '✨' : '⚠️'} {message.text}
+                            </div>
+                        )}
+                    </div>
+                    <Button
+                        onClick={handleSave}
+                        disabled={isSaving}
+                        className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white min-w-[140px] shadow-sm"
+                        size="lg"
+                    >
+                        <Save size={18} />
+                        {isSaving ? '儲存中...' : '儲存所有設定'}
+                    </Button>
                 </div>
+
             </main>
         </div>
     )
 }
+
