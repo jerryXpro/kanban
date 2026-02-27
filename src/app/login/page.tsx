@@ -3,6 +3,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { getSetting } from '@/lib/api/settings'
+
+export const dynamic = 'force-dynamic'
 
 export default async function LoginPage({
     searchParams,
@@ -10,6 +13,7 @@ export default async function LoginPage({
     searchParams: Promise<{ message: string }>
 }) {
     const { message } = await searchParams;
+    const workspaceName = await getSetting('workspace_name', 'Kanban Workspace')
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-slate-50 relative p-4">
@@ -19,7 +23,7 @@ export default async function LoginPage({
             <Card className="w-full max-w-sm z-10 shadow-xl border-slate-200/60 bg-white/80 backdrop-blur-xl">
                 <form>
                     <CardHeader className="space-y-1 text-center pb-6">
-                        <CardTitle className="text-2xl font-bold tracking-tight">Kanban Workspace</CardTitle>
+                        <CardTitle className="text-2xl font-bold tracking-tight">{workspaceName}</CardTitle>
                         <CardDescription className="text-slate-500">
                             Enter your email below to login or create an account
                         </CardDescription>

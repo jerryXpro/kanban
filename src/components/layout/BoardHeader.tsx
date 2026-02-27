@@ -15,9 +15,10 @@ interface BoardHeaderProps {
     userRole: string
     userEmail: string | undefined
     isAdmin: boolean
+    workspaceName: string
 }
 
-export default function BoardHeader({ departmentId, departmentName, userRole, userEmail, isAdmin }: BoardHeaderProps) {
+export default function BoardHeader({ departmentId, departmentName, userRole, userEmail, isAdmin, workspaceName }: BoardHeaderProps) {
     const router = useRouter()
     const [isAnomalyOpen, setIsAnomalyOpen] = useState(false)
     const supabase = createClient()
@@ -37,7 +38,7 @@ export default function BoardHeader({ departmentId, departmentName, userRole, us
                     </div>
                 </Link>
                 <h1 className="font-semibold text-white text-lg tracking-wide flex items-center gap-2">
-                    {departmentName} <span className="opacity-70 font-normal">|</span> <I18nText ns="header" textKey="team_board" />
+                    {departmentName} <span className="opacity-70 font-normal">|</span> {workspaceName}
                 </h1>
             </div>
 
@@ -57,11 +58,18 @@ export default function BoardHeader({ departmentId, departmentName, userRole, us
                 <div className="text-sm opacity-80 hidden sm:flex items-center gap-2">
                     <span className="bg-white/20 px-2 py-1 rounded-md">{userRole}</span>
                     {isAdmin && (
-                        <Link href="/admin/users">
-                            <Button variant="outline" size="sm" className="h-6 text-xs text-indigo-900 px-2 bg-amber-200 hover:bg-amber-300 border-none">
-                                <I18nText ns="header" textKey="upgrade_manager" />
-                            </Button>
-                        </Link>
+                        <div className="flex items-center gap-2">
+                            <Link href="/admin/settings">
+                                <Button variant="outline" size="sm" className="h-6 text-xs text-indigo-900 px-2 bg-amber-200 hover:bg-amber-300 border-none">
+                                    ⚙️ 系統設定
+                                </Button>
+                            </Link>
+                            <Link href="/admin/users">
+                                <Button variant="outline" size="sm" className="h-6 text-xs text-indigo-900 px-2 bg-amber-200 hover:bg-amber-300 border-none">
+                                    <I18nText ns="header" textKey="upgrade_manager" />
+                                </Button>
+                            </Link>
+                        </div>
                     )}
                     <span>{userEmail}</span>
                 </div>

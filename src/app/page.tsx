@@ -5,6 +5,7 @@ import { getDepartments } from '@/lib/api/departments'
 import DepartmentManager from '@/components/departments/DepartmentManager'
 import MainHeader from '@/components/layout/MainHeader'
 import { isDescendant } from '@/lib/api/admin'
+import { getSetting } from '@/lib/api/settings'
 
 export const dynamic = 'force-dynamic'
 
@@ -41,9 +42,11 @@ export default async function Home() {
     }
   }
 
+  const workspaceName = await getSetting('workspace_name', '看板管理系統')
+
   return (
     <main className="min-h-screen bg-slate-100 flex flex-col">
-      <MainHeader userEmail={user.email} isAdmin={!!profile?.is_admin} />
+      <MainHeader userEmail={user.email} isAdmin={!!profile?.is_admin} workspaceName={workspaceName} />
 
       {/* Main Content Area */}
       <DepartmentManager

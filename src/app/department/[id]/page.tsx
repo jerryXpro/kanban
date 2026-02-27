@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { I18nText } from '@/components/ui/I18nText'
 import BoardHeader from '@/components/layout/BoardHeader'
 import InitializeBoardButton from '@/components/board/InitializeBoardButton'
+import { getSetting } from '@/lib/api/settings'
 
 export const dynamic = 'force-dynamic'
 
@@ -72,6 +73,8 @@ export default async function DepartmentBoardPage({
         if (deptData) departments = deptData
     }
 
+    const workspaceName = await getSetting('workspace_name', '看板管理系統')
+
     return (
         <div
             className="h-screen flex flex-col transition-colors duration-500"
@@ -86,6 +89,7 @@ export default async function DepartmentBoardPage({
                 userRole={userRole}
                 userEmail={user.email}
                 isAdmin={!!profile?.is_admin}
+                workspaceName={workspaceName}
             />
 
             {/* Board Layout Area */}

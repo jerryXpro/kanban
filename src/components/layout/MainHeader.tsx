@@ -10,9 +10,10 @@ import { useRouter } from 'next/navigation'
 interface MainHeaderProps {
     userEmail: string | undefined
     isAdmin: boolean
+    workspaceName: string
 }
 
-export default function MainHeader({ userEmail, isAdmin }: MainHeaderProps) {
+export default function MainHeader({ userEmail, isAdmin, workspaceName }: MainHeaderProps) {
     const router = useRouter()
     const supabase = createClient()
 
@@ -27,18 +28,25 @@ export default function MainHeader({ userEmail, isAdmin }: MainHeaderProps) {
             <div className="flex items-center gap-4">
                 <div className="w-8 h-8 bg-indigo-600 rounded flex items-center justify-center text-white font-bold">K</div>
                 <h1 className="font-semibold text-slate-800">
-                    <I18nText ns="header" textKey="workspace" />
+                    {workspaceName}
                 </h1>
             </div>
 
             <div className="flex items-center gap-4">
                 <LanguageSwitcher />
                 {isAdmin && (
-                    <Link href="/admin/users">
-                        <Button variant="outline" size="sm" className="h-8 text-sm text-indigo-900 px-3 bg-amber-200 hover:bg-amber-300 border-none rounded-md font-medium shadow-sm cursor-pointer">
-                            <I18nText ns="header" textKey="upgrade_manager" />
-                        </Button>
-                    </Link>
+                    <div className="flex items-center gap-2">
+                        <Link href="/admin/settings">
+                            <Button variant="outline" size="sm" className="h-8 text-sm text-indigo-900 px-3 bg-amber-200 hover:bg-amber-300 border-none rounded-md font-medium shadow-sm cursor-pointer">
+                                ⚙️ 系統設定
+                            </Button>
+                        </Link>
+                        <Link href="/admin/users">
+                            <Button variant="outline" size="sm" className="h-8 text-sm text-indigo-900 px-3 bg-amber-200 hover:bg-amber-300 border-none rounded-md font-medium shadow-sm cursor-pointer">
+                                <I18nText ns="header" textKey="upgrade_manager" />
+                            </Button>
+                        </Link>
+                    </div>
                 )}
                 <div className="text-sm text-slate-500 hidden sm:block">{userEmail}</div>
                 <Button
