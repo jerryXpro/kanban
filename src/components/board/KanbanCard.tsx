@@ -186,14 +186,16 @@ export default function KanbanCard({ card, isGlobalList, userProfile, isOverlay,
                                 <span>{new Date(card.due_date).toLocaleDateString()}</span>
                             </div>
                         )}
+                        {/* Functionality not yet implemented in backend
                         <div className="flex items-center gap-1" title="Comments">
                             <MessageSquare size={14} />
-                            <span className="text-xs font-semibold">2</span>
+                            <span className="text-xs font-semibold">0</span>
                         </div>
                         <div className="flex items-center gap-1" title="Attachments">
                             <Paperclip size={14} />
-                            <span className="text-xs font-semibold">1</span>
+                            <span className="text-xs font-semibold">0</span>
                         </div>
+                        */}
                     </div>
 
                     {!isGlobalList && (
