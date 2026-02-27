@@ -1,18 +1,24 @@
--- 新增應用程式設定資料表
+-- 新增應用程式設定資料表（若已存在則不重建）
 CREATE TABLE IF NOT EXISTS app_settings (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 開放所有已登入使用者讀取
+-- 開啟 RLS（若已開啟也不會報錯）
 ALTER TABLE app_settings ENABLE ROW LEVEL SECURITY;
 
+-- 刪除舊有的 Policy（若存在），再重新建立
+DROP POLICY IF EXISTS "Enable read access for all authenticated users" ON app_settings;
+DROP POLICY IF EXISTS "Enable insert for admins" ON app_settings;
+DROP POLICY IF EXISTS "Enable update for admins" ON app_settings;
+
+-- 允許所有已登入使用者讀取
 CREATE POLICY "Enable read access for all authenticated users" 
 ON app_settings FOR SELECT 
 USING (auth.role() = 'authenticated');
 
--- 僅允許管理員更新與新增
+-- 僅允許管理員新增
 CREATE POLICY "Enable insert for admins" 
 ON app_settings FOR INSERT 
 WITH CHECK (
@@ -22,6 +28,7 @@ WITH CHECK (
     )
 );
 
+-- 僅允許管理員更新
 CREATE POLICY "Enable update for admins" 
 ON app_settings FOR UPDATE 
 USING (
@@ -31,7 +38,7 @@ USING (
     )
 );
 
--- 寫入預設的系統名稱
+-- 寫入預設的系統名稱（若已存在則不覆蓋）
 INSERT INTO app_settings (key, value) 
 VALUES ('workspace_name', '看板管理系統')
 ON CONFLICT (key) DO NOTHING;
