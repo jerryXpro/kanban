@@ -119,19 +119,27 @@ export default function KanbanCard({ card, isGlobalList, userProfile, isOverlay,
                     </div>
                 )}
 
-                {/* Announcement badge */}
-                {isGlobalList && (
+                {/* Announcement list badge (Non-anomaly) */}
+                {isGlobalList && !isAnomaly && (
                     <div className="flex items-center gap-1 text-xs font-semibold text-amber-600 mb-2 bg-amber-50 w-fit px-2 py-0.5 rounded border border-amber-100">
                         <AlertCircle size={12} />
                         {dict.global_announcement}
                     </div>
                 )}
 
-                {/* Anomaly badge */}
+                {/* Anomaly Type Badge */}
                 {isAnomaly && (
                     <div className="flex items-center gap-1 text-xs font-semibold text-red-600 mb-2 bg-red-50 w-fit px-2 py-0.5 rounded border border-red-100">
                         <AlertCircle size={12} />
-                        {sourceDeptName ? `Source: ${sourceDeptName}` : 'Anomaly'}
+                        {dict.report_anomaly || '通報異常'}
+                    </div>
+                )}
+
+                {/* Anomaly Source Badge */}
+                {isAnomaly && sourceDeptName && (
+                    <div className="flex items-center gap-1 text-xs font-semibold text-red-600 mb-2 bg-red-50 w-fit px-2 py-0.5 rounded border border-red-100">
+                        <AlertCircle size={12} />
+                        Source: {sourceDeptName}
                     </div>
                 )}
 
