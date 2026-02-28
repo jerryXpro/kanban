@@ -186,31 +186,28 @@ export default function KanbanCard({ card, isGlobalList, userProfile, isOverlay,
                 )}
 
                 {/* Footer badges */}
-                <div className="flex items-center justify-between mt-3 text-slate-400">
-                    <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between mt-3 text-slate-400 border-t border-slate-100 pt-2">
+                    <div className="flex flex-col gap-1">
+                        {card.created_at && (
+                            <div className="flex items-center gap-1.5 text-slate-400 text-[11px]" title="發佈日期">
+                                <span>🕒</span>
+                                <span>{new Date(card.created_at).toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}</span>
+                            </div>
+                        )}
                         {card.due_date && (
-                            <div className="flex items-center gap-1 bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-xs">
+                            <div className="flex items-center gap-1.5 text-slate-500 text-[11px]" title="到期日">
                                 <span>⏲</span>
                                 <span>{new Date(card.due_date).toLocaleDateString()}</span>
                             </div>
                         )}
-                        {/* Functionality not yet implemented in backend
-                        <div className="flex items-center gap-1" title="Comments">
-                            <MessageSquare size={14} />
-                            <span className="text-xs font-semibold">0</span>
-                        </div>
-                        <div className="flex items-center gap-1" title="Attachments">
-                            <Paperclip size={14} />
-                            <span className="text-xs font-semibold">0</span>
-                        </div>
-                        */}
                     </div>
 
-                    {!isGlobalList && (
-                        <div className="flex -space-x-2 overflow-hidden">
-                            <div className="inline-block h-6 w-6 rounded-full ring-2 ring-white bg-indigo-100 flex items-center justify-center text-[10px] text-indigo-700 font-bold uppercase">JD</div>
-                        </div>
-                    )}
+                    <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-0.5 rounded border border-slate-100 shadow-sm" title={card.author?.role || '發佈人員'}>
+                        {/* <span>✍️</span> */}
+                        <span className="text-xs font-medium text-slate-600">
+                            {card.author?.full_name || '系統'}
+                        </span>
+                    </div>
                 </div>
             </div>
 

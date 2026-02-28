@@ -76,7 +76,7 @@ export async function getBoardData(boardId: string): Promise<BoardWithDetails | 
     if (listIds.length > 0) {
         const { data: cardsData, error: cardsError } = await supabase
             .from('cards')
-            .select('*')
+            .select('*, author:profiles!created_by(id, full_name, role)')
             .in('list_id', listIds)
             .order('order', { ascending: true })
 

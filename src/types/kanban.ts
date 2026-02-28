@@ -55,6 +55,11 @@ export type Card = {
     status?: string
     cover_image_url?: string | null
     labels?: any[]
+    author?: {
+        id: string
+        full_name: string | null
+        role: string
+    } | null
 }
 
 export type CardAssignee = {
