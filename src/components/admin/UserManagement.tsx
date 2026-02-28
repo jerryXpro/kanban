@@ -285,7 +285,7 @@ export default function UserManagement({ initialUsers, departments }: { initialU
                                     checked={formData.isDepartmentAdmin}
                                     onCheckedChange={(c) => setFormData({ ...formData, isDepartmentAdmin: c as boolean })}
                                 />
-                                <Label htmlFor="isDeptAdmin" className="cursor-pointer font-medium text-slate-700">設為部門管理者 (Dept Admin)</Label>
+                                <Label htmlFor="isDeptAdmin" className="cursor-pointer font-medium text-slate-700">賦予管理權限 (包含主管/副主管/行政等)</Label>
                             </div>
                         </div>
                     </div>

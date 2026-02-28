@@ -42,7 +42,7 @@ export default function BoardHeader({ departmentId, departmentName, managerName,
                     {departmentName}
                     {managerName && (
                         <span className="text-[13px] bg-black/30 px-2 py-0.5 rounded border border-white/20 whitespace-nowrap ml-1 font-medium text-white/90">
-                            部門主管 : {managerName}
+                            管理團隊 : {managerName}
                         </span>
                     )}
                     <span className="opacity-70 font-normal ml-2">|</span>

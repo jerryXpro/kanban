@@ -47,16 +47,17 @@ export default async function DepartmentBoardPage({
         }
     }
 
-    // 1.6 Fetch the department manager
-    const { data: managerProfile } = await supabase
+    // 1.6 Fetch the department manager(s) - including Deputies and Assistants
+    const { data: managerProfiles } = await supabase
         .from('profiles')
-        .select('full_name')
+        .select('full_name, role')
         .eq('department_id', id)
         .eq('is_department_admin', true)
-        .limit(1)
-        .single()
 
-    const managerName = managerProfile?.full_name || null
+    let managerName = null
+    if (managerProfiles && managerProfiles.length > 0) {
+        managerName = managerProfiles.map(p => `${p.full_name}${p.role ? `(${p.role})` : ''}`).join(' · ')
+    }
 
     // 2. Fetch the Department name 
     const { data: department } = await supabase
