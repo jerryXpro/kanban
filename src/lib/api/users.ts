@@ -53,15 +53,17 @@ export async function createUser(data: {
     const newUserId = authData.user.id
 
     // 4. Update the Profile record (created automatically via trigger in DB, so we just update it)
+    // Wait, since there is no trigger as per schema, we MUST insert or upsert the profile:
     const { error: profileError } = await supabaseAdmin
         .from('profiles')
-        .update({
+        .upsert({
+            id: newUserId,
+            email: data.email,
             full_name: data.fullName,
             department_id: data.departmentId,
             role: data.role,
             is_department_admin: data.isDepartmentAdmin
         })
-        .eq('id', newUserId)
 
     if (profileError) {
         // Warning: user created in Auth but profile update failed.

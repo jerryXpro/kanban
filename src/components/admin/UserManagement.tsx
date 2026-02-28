@@ -49,7 +49,7 @@ export default function UserManagement({ initialUsers, departments }: { initialU
         email: '',
         password: '',
         fullName: '',
-        departmentId: '',
+        departmentId: 'none',
         role: '',
         isDepartmentAdmin: false
     })
@@ -114,7 +114,7 @@ export default function UserManagement({ initialUsers, departments }: { initialU
             email: formData.email,
             password: formData.password || undefined,
             fullName: formData.fullName,
-            departmentId: formData.departmentId || null,
+            departmentId: formData.departmentId === 'none' ? null : (formData.departmentId || null),
             role: formData.role,
             isDepartmentAdmin: formData.isDepartmentAdmin
         })
@@ -125,7 +125,7 @@ export default function UserManagement({ initialUsers, departments }: { initialU
             toast.success('建立成功')
             setIsCreateOpen(false)
             setFormData({
-                email: '', password: '', fullName: '', departmentId: '', role: '', isDepartmentAdmin: false
+                email: '', password: '', fullName: '', departmentId: 'none', role: '', isDepartmentAdmin: false
             })
             // Refresh to fetch joined department data for the new user row
             router.refresh()
@@ -264,7 +264,7 @@ export default function UserManagement({ initialUsers, departments }: { initialU
                                         <SelectValue placeholder="請選擇部門 (可留空)" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="">-- 無 --</SelectItem>
+                                        <SelectItem value="none">-- 無 --</SelectItem>
                                         {departments.map(dept => (
                                             <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
                                         ))}
