@@ -60,6 +60,17 @@ export type Card = {
         full_name: string | null
         role: string
     } | null
+    assigned_user_id?: string | null
+    assigned_department_id?: string | null
+    assignee_user?: {
+        id: string
+        full_name: string | null
+        role: string
+    } | null
+    assignee_department?: {
+        id: string
+        name: string
+    } | null
 }
 
 export type CardAssignee = {

@@ -17,9 +17,10 @@ interface KanbanListProps {
     userProfile?: Profile
     isOverlay?: boolean
     departments?: { id: string, name: string }[]
+    systemUsers?: { id: string, full_name: string | null, role: string }[]
 }
 
-export default function KanbanList({ list, cards, userProfile, isOverlay, departments = [] }: KanbanListProps) {
+export default function KanbanList({ list, cards, userProfile, isOverlay, departments = [], systemUsers = [] }: KanbanListProps) {
     const { setNodeRef, attributes, listeners, transform, transition, isDragging } =
         useSortable({
             id: list.id,
@@ -189,7 +190,7 @@ export default function KanbanList({ list, cards, userProfile, isOverlay, depart
             <div className="flex-1 p-2 overflow-y-auto overflow-x-hidden flex flex-col gap-2 min-h-[100px]">
                 <SortableContext items={cards.map((c) => c.id)} strategy={verticalListSortingStrategy}>
                     {cards.map((card) => (
-                        <KanbanCard key={card.id} card={card} isGlobalList={list.is_global} userProfile={userProfile} departments={departments} />
+                        <KanbanCard key={card.id} card={card} isGlobalList={list.is_global} userProfile={userProfile} departments={departments} systemUsers={systemUsers} />
                     ))}
                 </SortableContext>
             </div>

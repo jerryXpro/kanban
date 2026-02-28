@@ -77,14 +77,26 @@ export async function reportAnomaly(currentDeptId: string, targetDeptId: string,
  * which correctly applies RLS with the user's identity — unlike the
  * browser client which can silently fail on RLS-blocked writes.
  */
-export async function updateCard(cardId: string, title: string, description: string) {
+export async function updateCard(
+    cardId: string,
+    title: string,
+    description: string,
+    assignedUserId?: string | null,
+    assignedDeptId?: string | null
+) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: '尚未登入' }
 
     const { error } = await supabase
         .from('cards')
-        .update({ title: title.trim(), description: description.trim(), updated_at: new Date().toISOString() })
+        .update({
+            title: title.trim(),
+            description: description.trim(),
+            updated_at: new Date().toISOString(),
+            assigned_user_id: assignedUserId !== undefined ? assignedUserId : null,
+            assigned_department_id: assignedDeptId !== undefined ? assignedDeptId : null
+        })
         .eq('id', cardId)
 
     if (error) return { error: `更新失敗：${error.message}` }

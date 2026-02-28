@@ -31,6 +31,7 @@ interface KanbanBoardProps {
     userProfile?: Profile
     boardId: string
     departments?: Department[]
+    systemUsers?: { id: string, full_name: string | null, role: string }[]
 }
 
 // Float order calculation helper
@@ -40,7 +41,7 @@ const calculateNewOrder = (items: { order: number }[], newIndex: number) => {
     return (prevOrder + nextOrder) / 2.0
 }
 
-export default function KanbanBoard({ initialLists, userProfile, boardId, departments = [] }: KanbanBoardProps) {
+export default function KanbanBoard({ initialLists, userProfile, boardId, departments = [], systemUsers = [] }: KanbanBoardProps) {
     const [lists, setLists] = useState<ListWithCards[]>(initialLists)
     const [activeCard, setActiveCard] = useState<Card | null>(null)
     const [activeList, setActiveList] = useState<ListWithCards | null>(null)
@@ -410,7 +411,7 @@ export default function KanbanBoard({ initialLists, userProfile, boardId, depart
             <div className="flex w-full gap-6 overflow-x-auto pb-8 snap-x snap-mandatory px-4 md:px-8">
                 <SortableContext items={lists.map((l) => l.id)} strategy={horizontalListSortingStrategy}>
                     {lists.map((list) => (
-                        <KanbanList key={list.id} list={list} cards={list.cards} userProfile={userProfile} departments={departments} />
+                        <KanbanList key={list.id} list={list} cards={list.cards} userProfile={userProfile} departments={departments} systemUsers={systemUsers} />
                     ))}
                 </SortableContext>
 
@@ -495,9 +496,9 @@ export default function KanbanBoard({ initialLists, userProfile, boardId, depart
 
             <DragOverlay>
                 {activeList ? (
-                    <KanbanList list={activeList} cards={activeList.cards} userProfile={userProfile} isOverlay departments={departments} />
+                    <KanbanList list={activeList} cards={activeList.cards} userProfile={userProfile} isOverlay departments={departments} systemUsers={systemUsers} />
                 ) : null}
-                {activeCard ? <KanbanCard card={activeCard} isGlobalList={false} userProfile={userProfile} isOverlay departments={departments} /> : null}
+                {activeCard ? <KanbanCard card={activeCard} isGlobalList={false} userProfile={userProfile} isOverlay departments={departments} systemUsers={systemUsers} /> : null}
             </DragOverlay>
         </DndContext>
     )
