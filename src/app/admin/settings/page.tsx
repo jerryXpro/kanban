@@ -42,9 +42,16 @@ export default async function AdminSettingsPage() {
         console.error('Error fetching users:', error)
     }
 
+    // Fetch all departments to populate the dropdown when creating a new user
+    const { data: allDepartments } = await supabase
+        .from('departments')
+        .select('id, name')
+        .order('name', { ascending: true })
+
     return <AdminSettingsForm
         initialWorkspaceName={currentWorkspaceName}
         initialUserGuide={currentUserGuide}
         initialUsers={allUsers || []}
+        departments={allDepartments || []}
     />
 }

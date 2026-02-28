@@ -13,9 +13,10 @@ interface AdminSettingsFormProps {
     initialWorkspaceName: string
     initialUserGuide: string
     initialUsers: any[]
+    departments: any[]
 }
 
-export default function AdminSettingsForm({ initialWorkspaceName, initialUserGuide, initialUsers }: AdminSettingsFormProps) {
+export default function AdminSettingsForm({ initialWorkspaceName, initialUserGuide, initialUsers, departments }: AdminSettingsFormProps) {
     const router = useRouter()
     const [activeTab, setActiveTab] = useState<'general' | 'users'>('general')
     const [workspaceName, setWorkspaceName] = useState(initialWorkspaceName)
@@ -78,8 +79,8 @@ export default function AdminSettingsForm({ initialWorkspaceName, initialUserGui
                     <button
                         onClick={() => setActiveTab('general')}
                         className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'general'
-                                ? 'bg-white text-indigo-700 shadow-sm'
-                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                            ? 'bg-white text-indigo-700 shadow-sm'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
                             }`}
                     >
                         <Settings size={16} />
@@ -88,8 +89,8 @@ export default function AdminSettingsForm({ initialWorkspaceName, initialUserGui
                     <button
                         onClick={() => setActiveTab('users')}
                         className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'users'
-                                ? 'bg-white text-indigo-700 shadow-sm'
-                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                            ? 'bg-white text-indigo-700 shadow-sm'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
                             }`}
                     >
                         <Users size={16} />
@@ -179,7 +180,7 @@ export default function AdminSettingsForm({ initialWorkspaceName, initialUserGui
                             <h2 className="text-lg font-semibold text-slate-800">使用者與權限管理</h2>
                             <p className="text-sm text-slate-500 mt-1">管理各帳號的系統角色與權限層級。儲存按鈕將分別套用於每位使用者。</p>
                         </section>
-                        <UserManagement initialUsers={initialUsers} />
+                        <UserManagement initialUsers={initialUsers} departments={departments} />
                     </div>
                 )}
 
