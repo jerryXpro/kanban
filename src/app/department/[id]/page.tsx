@@ -34,6 +34,30 @@ export default async function DepartmentBoardPage({
 
     const userRole = profile?.role || '作業員'
 
+    // 1.5. Validate Access to Department
+    if (!profile?.is_admin) {
+        if (!profile?.department_id) {
+            redirect('/')
+        } else {
+            const { isDescendant } = await import('@/lib/api/admin')
+            const hasAccess = await isDescendant(profile.department_id, id)
+            if (!hasAccess) {
+                redirect('/')
+            }
+        }
+    }
+
+    // 1.6 Fetch the department manager
+    const { data: managerProfile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('department_id', id)
+        .eq('is_department_admin', true)
+        .limit(1)
+        .single()
+
+    const managerName = managerProfile?.full_name || null
+
     // 2. Fetch the Department name 
     const { data: department } = await supabase
         .from('departments')
@@ -86,6 +110,7 @@ export default async function DepartmentBoardPage({
             <BoardHeader
                 departmentId={department.id}
                 departmentName={department.name}
+                managerName={managerName}
                 userRole={userRole}
                 userEmail={user.email}
                 isAdmin={!!profile?.is_admin}

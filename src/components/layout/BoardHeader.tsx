@@ -12,13 +12,14 @@ import AnomalyReportDialog from '@/components/board/AnomalyReportDialog'
 interface BoardHeaderProps {
     departmentId: string
     departmentName: string
+    managerName?: string | null
     userRole: string
     userEmail: string | undefined
     isAdmin: boolean
     workspaceName: string
 }
 
-export default function BoardHeader({ departmentId, departmentName, userRole, userEmail, isAdmin, workspaceName }: BoardHeaderProps) {
+export default function BoardHeader({ departmentId, departmentName, managerName, userRole, userEmail, isAdmin, workspaceName }: BoardHeaderProps) {
     const router = useRouter()
     const [isAnomalyOpen, setIsAnomalyOpen] = useState(false)
     const supabase = createClient()
@@ -38,7 +39,14 @@ export default function BoardHeader({ departmentId, departmentName, userRole, us
                     </div>
                 </Link>
                 <h1 className="font-semibold text-white text-lg tracking-wide flex items-center gap-2">
-                    {departmentName} <span className="opacity-70 font-normal">|</span> {workspaceName}
+                    {departmentName}
+                    {managerName && (
+                        <span className="text-[13px] bg-black/30 px-2 py-0.5 rounded border border-white/20 whitespace-nowrap ml-1 font-medium text-white/90">
+                            部門主管 : {managerName}
+                        </span>
+                    )}
+                    <span className="opacity-70 font-normal ml-2">|</span>
+                    <span className="ml-2">{workspaceName}</span>
                 </h1>
             </div>
 

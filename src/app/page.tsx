@@ -28,16 +28,21 @@ export default async function Home() {
   console.log('===> DB Profile Fetch:', { userId: user.id, profile, profileError })
 
   // Fetch departments from database
-  const departments = await getDepartments()
+  const allDepartments = await getDepartments()
+  let visibleDepartments = []
 
   let manageableDepartmentIds: string[] = []
   if (profile?.is_admin) {
-    manageableDepartmentIds = departments.map(d => d.id)
-  } else if (profile?.is_department_admin && profile.department_id) {
-    // Find all descendant departments for the given department_admin
-    for (const dept of departments) {
+    visibleDepartments = allDepartments
+    manageableDepartmentIds = allDepartments.map(d => d.id)
+  } else if (profile?.department_id) {
+    // Find all descendant departments for the user's department to establish visibility
+    for (const dept of allDepartments) {
       if (await isDescendant(profile.department_id, dept.id)) {
-        manageableDepartmentIds.push(dept.id)
+        visibleDepartments.push(dept)
+        if (profile.is_department_admin) {
+          manageableDepartmentIds.push(dept.id)
+        }
       }
     }
   }
@@ -50,7 +55,7 @@ export default async function Home() {
 
       {/* Main Content Area */}
       <DepartmentManager
-        initialDepartments={departments}
+        initialDepartments={visibleDepartments}
         isAdmin={!!profile?.is_admin}
         manageableDepartmentIds={manageableDepartmentIds}
       />

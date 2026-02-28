@@ -110,27 +110,33 @@ export default function UserManagement({ initialUsers, departments }: { initialU
         }
 
         setIsCreating(true)
-        const result = await createUser({
-            email: formData.email,
-            password: formData.password || undefined,
-            fullName: formData.fullName,
-            departmentId: formData.departmentId === 'none' ? null : (formData.departmentId || null),
-            role: formData.role,
-            isDepartmentAdmin: formData.isDepartmentAdmin
-        })
-
-        if (!result.success) {
-            toast.error('建立失敗: ' + result.error)
-        } else {
-            toast.success('建立成功')
-            setIsCreateOpen(false)
-            setFormData({
-                email: '', password: '', fullName: '', departmentId: 'none', role: '', isDepartmentAdmin: false
+        try {
+            const result = await createUser({
+                email: formData.email,
+                password: formData.password || undefined,
+                fullName: formData.fullName,
+                departmentId: formData.departmentId === 'none' ? null : (formData.departmentId || null),
+                role: formData.role,
+                isDepartmentAdmin: formData.isDepartmentAdmin
             })
-            // Refresh to fetch joined department data for the new user row
-            router.refresh()
+
+            if (!result.success) {
+                toast.error('建立失敗: ' + result.error)
+            } else {
+                toast.success('建立成功')
+                setIsCreateOpen(false)
+                setFormData({
+                    email: '', password: '', fullName: '', departmentId: 'none', role: '', isDepartmentAdmin: false
+                })
+                // Refresh to fetch joined department data for the new user row
+                router.refresh()
+            }
+        } catch (error: any) {
+            console.error('Create User Error:', error)
+            toast.error('系統發生預期外的錯誤，請稍後再試或檢查日誌。' + (error.message || ''))
+        } finally {
+            setIsCreating(false)
         }
-        setIsCreating(false)
     }
 
     return (
