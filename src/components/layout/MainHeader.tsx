@@ -49,11 +49,6 @@ export default function MainHeader({ userEmail, isAdmin, workspaceName }: MainHe
                                 ⚙️ 系統設定
                             </Button>
                         </Link>
-                        <Link href="/admin/users">
-                            <Button variant="outline" size="sm" className="h-8 text-sm text-indigo-900 px-3 bg-amber-200 hover:bg-amber-300 border-none rounded-md font-medium shadow-sm cursor-pointer">
-                                <I18nText ns="header" textKey="upgrade_manager" />
-                            </Button>
-                        </Link>
                     </div>
                 )}
                 <div className="text-sm text-slate-500 hidden sm:block">{userEmail}</div>
