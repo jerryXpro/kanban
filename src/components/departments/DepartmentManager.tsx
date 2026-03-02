@@ -4,8 +4,9 @@ import { useState } from 'react'
 import { Department } from '@/types/kanban'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
+import { MoreHorizontal, Pencil, Trash2, Lock, KeyRound } from 'lucide-react'
 import { createDepartment, updateDepartment, deleteDepartment } from '@/app/actions/department'
+import { updateDepartmentPassword } from '@/app/actions/departmentPassword'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import * as LucideIcons from 'lucide-react'
@@ -74,6 +75,10 @@ export default function DepartmentManager({
     const [deletingDept, setDeletingDept] = useState<Department | null>(null)
     const [isDeleting, setIsDeleting] = useState(false)
 
+    const [passwordDept, setPasswordDept] = useState<Department | null>(null)
+    const [newPassword, setNewPassword] = useState('')
+    const [isUpdatingPassword, setIsUpdatingPassword] = useState(false)
+
     const handleCreate = async () => {
         if (!createName.trim()) return
         setIsCreating(true)
@@ -134,6 +139,27 @@ export default function DepartmentManager({
         }
     }
 
+    const handleUpdatePassword = async () => {
+        if (!passwordDept) return
+        setIsUpdatingPassword(true)
+        try {
+            const res = await updateDepartmentPassword(passwordDept.id, newPassword || null)
+            if (res?.error) {
+                toast.error(res.error)
+            } else {
+                toast.success(newPassword ? '密碼已設定' : '密碼已清除')
+                setPasswordDept(null)
+                setNewPassword('')
+                setDepartments(departments.map(d => d.id === passwordDept.id ? { ...d, has_password: !!newPassword } : d))
+                router.refresh()
+            }
+        } catch (error: any) {
+            toast.error("伺服器發生非預期錯誤：" + error.message)
+        } finally {
+            setIsUpdatingPassword(false)
+        }
+    }
+
     return (
         <div className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full">
             <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -187,10 +213,10 @@ export default function DepartmentManager({
 
                             {/* Admin Controls overlay */}
                             {isManager && (
-                                <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="absolute top-3 right-3 text-slate-400">
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-700 bg-white/80 hover:bg-white backdrop-blur-sm shadow-sm">
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-slate-800 bg-white shadow-sm border border-slate-200">
                                                 <MoreHorizontal className="h-4 w-4" />
                                             </Button>
                                         </DropdownMenuTrigger>
@@ -204,6 +230,13 @@ export default function DepartmentManager({
                                             }}>
                                                 <Pencil className="h-4 w-4 mr-2" />
                                                 {dict.edit_dept}
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => {
+                                                setPasswordDept(dept)
+                                                setNewPassword('')
+                                            }}>
+                                                <KeyRound className="h-4 w-4 mr-2" />
+                                                設定密碼
                                             </DropdownMenuItem>
                                             <DropdownMenuItem className="text-red-600 focus:bg-red-50 focus:text-red-700" onClick={() => setDeletingDept(dept)}>
                                                 <Trash2 className="h-4 w-4 mr-2" />
@@ -388,7 +421,6 @@ export default function DepartmentManager({
                 </DialogContent>
             </Dialog>
 
-            {/* Delete Dialog */}
             <Dialog open={!!deletingDept} onOpenChange={(open) => !open && setDeletingDept(null)}>
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
@@ -401,6 +433,42 @@ export default function DepartmentManager({
                         <Button variant="outline" onClick={() => setDeletingDept(null)} disabled={isDeleting}>{dict.cancel}</Button>
                         <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
                             {isDeleting ? '...' : dict.delete_dept}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Password Dialog */}
+            <Dialog open={!!passwordDept} onOpenChange={(open) => !open && setPasswordDept(null)}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>設定密碼 - {passwordDept?.name}</DialogTitle>
+                        <DialogDescription>
+                            輸入新密碼以保護此部門看板，若留白則為清除密碼。目前狀態：
+                            <span className={passwordDept?.has_password ? "text-green-600 ml-1 font-medium" : "text-amber-600 ml-1 font-medium"}>
+                                {passwordDept?.has_password ? '已設定密碼' : '無密碼 (公開)'}
+                            </span>
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="new-password">新密碼</Label>
+                            <Input
+                                id="new-password"
+                                type="text"
+                                value={newPassword}
+                                onChange={(e) => setNewPassword(e.target.value)}
+                                placeholder="輸入密碼..."
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleUpdatePassword()
+                                }}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter className="mt-4">
+                        <Button variant="outline" onClick={() => setPasswordDept(null)} disabled={isUpdatingPassword}>{dict.cancel}</Button>
+                        <Button onClick={handleUpdatePassword} disabled={isUpdatingPassword}>
+                            {isUpdatingPassword ? dict.saving : dict.save}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

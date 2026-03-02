@@ -5,6 +5,7 @@ export type Department = {
     parent_ids: string[] | null
     color?: string | null
     created_at: string
+    has_password?: boolean
 }
 
 export type Profile = {

@@ -8,6 +8,8 @@ import { I18nText } from '@/components/ui/I18nText'
 import BoardHeader from '@/components/layout/BoardHeader'
 import InitializeBoardButton from '@/components/board/InitializeBoardButton'
 import { getSetting } from '@/lib/api/settings'
+import { cookies } from 'next/headers'
+import DepartmentPasswordPrompt from '@/components/department/DepartmentPasswordPrompt'
 
 export const dynamic = 'force-dynamic'
 
@@ -76,6 +78,15 @@ export default async function DepartmentBoardPage({
                 </Link>
             </div>
         )
+    }
+
+    // 2.5 Check Department Password
+    if (department.password) {
+        const cookieStore = await cookies()
+        const isUnlocked = cookieStore.get(`dept_unlock_${id}`)?.value === 'true'
+        if (!isUnlocked) {
+            return <DepartmentPasswordPrompt departmentId={id} departmentName={department.name} />
+        }
     }
 
     // 3. Find the board associated with this department

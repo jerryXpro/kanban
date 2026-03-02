@@ -14,5 +14,11 @@ export async function getDepartments(): Promise<Department[]> {
         return []
     }
 
-    return data || []
+    return (data || []).map((dept: any) => {
+        const { password, ...rest } = dept;
+        return {
+            ...rest,
+            has_password: !!password,
+        };
+    }) as Department[];
 }
