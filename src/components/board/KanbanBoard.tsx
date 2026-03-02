@@ -284,45 +284,32 @@ export default function KanbanBoard({ initialLists, userProfile, boardId, depart
                 return
             }
 
-            let activeListIndex = 0
-            let overListIndex = 0
-            let newLists: ListWithCards[] = []
+            // Compute new list order OUTSIDE the setState callback so we can safely use it for DB update
+            const currentLists = lists
+            const activeListIndex = currentLists.findIndex((col) => col.id === activeId)
 
-            setLists((currentLists) => {
-                activeListIndex = currentLists.findIndex((col) => col.id === activeId)
-
-                const isOverACard = over.data.current?.type === 'Card'
-                if (isOverACard) {
-                    const overList = findListByCardId(overId, currentLists)
-                    overListIndex = currentLists.findIndex(l => l.id === overList?.id)
-                } else {
-                    overListIndex = currentLists.findIndex((col) => col.id === overId)
-                }
-
-                if (activeListIndex === -1 || overListIndex === -1) {
-                    newLists = currentLists
-                    return currentLists
-                }
-
-                // Prevent dragging global list or moving things before global list
-                if (currentLists[activeListIndex]?.is_global || overListIndex === 0 && currentLists[0]?.is_global) {
-                    newLists = currentLists
-                    return currentLists
-                }
-
-                newLists = arrayMove(currentLists, activeListIndex, overListIndex)
-
-                // Assign new orders
-                const newOrder = calculateNewOrder(newLists, overListIndex)
-                newLists[overListIndex].order = newOrder
-
-                return newLists
-            })
-
-            // Async DB Update
-            if (newLists.length && newLists[overListIndex]) {
-                await supabase.from('lists').update({ order: newLists[overListIndex].order }).eq('id', activeId)
+            let overListIndex: number
+            const isOverACard = over.data.current?.type === 'Card'
+            if (isOverACard) {
+                const overList = findListByCardId(overId, currentLists)
+                overListIndex = currentLists.findIndex(l => l.id === overList?.id)
+            } else {
+                overListIndex = currentLists.findIndex((col) => col.id === overId)
             }
+
+            if (activeListIndex === -1 || overListIndex === -1) return
+
+            // Prevent dragging global list or moving things before global list
+            if (currentLists[activeListIndex]?.is_global || (overListIndex === 0 && currentLists[0]?.is_global)) return
+
+            const reorderedLists = arrayMove(currentLists, activeListIndex, overListIndex)
+            const newOrder = calculateNewOrder(reorderedLists, overListIndex)
+            reorderedLists[overListIndex] = { ...reorderedLists[overListIndex], order: newOrder }
+
+            setLists(reorderedLists)
+
+            // Async DB Update - uses the computed values safely
+            await supabase.from('lists').update({ order: newOrder }).eq('id', activeId)
         }
 
         // Handling Card Drop
