@@ -149,7 +149,7 @@ export default function KanbanCard({ card, isGlobalList, userProfile, isOverlay,
                 {isAnomaly && (
                     <div className="flex items-center gap-1 text-xs font-semibold text-red-600 mb-2 bg-red-50 w-fit px-2 py-0.5 rounded border border-red-100">
                         <AlertCircle size={12} />
-                        {dict.report_anomaly || '通報異常'}
+                        {dict.report_anomaly || '通報事件'}
                     </div>
                 )}
 

@@ -3,57 +3,88 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
-export async function reportAnomaly(currentDeptId: string, targetDeptId: string, title: string, description: string) {
+export async function reportAnomaly(currentDeptId: string, targetDeptIds: string[], title: string, description: string) {
     const supabase = await createClient()
 
     // 1. Verify Authentication
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'Not authenticated' }
 
-    // 2. Find target department's board (include boards where is_active is null or true)
-    const { data: boardData, error: boardError } = await supabase
+    if (!targetDeptIds || targetDeptIds.length === 0) {
+        return { error: '未選擇任何目標部門。' }
+    }
+
+    // 2. Find target departments' boards
+    const { data: boardsData, error: boardsError } = await supabase
         .from('boards')
-        .select('id')
-        .eq('department_id', targetDeptId)
+        .select('id, department_id')
+        .in('department_id', targetDeptIds)
         .neq('is_active', false)
-        .limit(1)
-        .single()
 
-    if (boardError || !boardData) {
-        const errMsg = boardError?.message || 'No board found'
-        return { error: `目標部門沒有可用的看板。(${errMsg})` }
+    if (boardsError || !boardsData || boardsData.length === 0) {
+        const errMsg = boardsError?.message || 'No boards found'
+        return { error: `找不到目標部門的可用看板。(${errMsg})` }
     }
 
-    // 3. Find target board's first list
-    const { data: listData, error: listError } = await supabase
+    const boardIds = boardsData.map(b => b.id)
+
+    // 3. Find first list for each board
+    // Supabase RPC or complex join might be better, but typically each board has few lists.
+    // For simplicity, we fetch all lists for these boards and pick the one with lowest order per board.
+    const { data: listsData, error: listsError } = await supabase
         .from('lists')
-        .select('id')
-        .eq('board_id', boardData.id)
-        .order('order', { ascending: true })
-        .limit(1)
-        .single()
+        .select('id, board_id, order')
+        .in('board_id', boardIds)
 
-    if (listError || !listData) {
-        const errMsg = listError?.message || 'No lists found'
-        return { error: `目標看板沒有任何清單，無法建立異常卡片。(${errMsg})` }
+    if (listsError || !listsData || listsData.length === 0) {
+        const errMsg = listsError?.message || 'No lists found'
+        return { error: `目標看板沒有任何清單，無法建立事件卡片。(${errMsg})` }
     }
 
-    // 4. Determine new order
-    const { data: maxOrderData } = await supabase
-        .from('cards')
-        .select('order')
-        .eq('list_id', listData.id)
-        .order('order', { ascending: false })
-        .limit(1)
-        .single()
+    // Group lists by board_id and find the minimum order list for each
+    const firstListPerBoard = new Map<string, string>() // board_id -> list_id
+    for (const list of listsData) {
+        if (!firstListPerBoard.has(list.board_id)) {
+            firstListPerBoard.set(list.board_id, list.id)
+        } else {
+            // Compare order and keep the smaller one
+            const currentMinListId = firstListPerBoard.get(list.board_id)!
+            const currentMinList = listsData.find(l => l.id === currentMinListId)
+            if (currentMinList && list.order < currentMinList.order) {
+                firstListPerBoard.set(list.board_id, list.id)
+            }
+        }
+    }
 
-    const newOrder = maxOrderData ? maxOrderData.order + 65536 : 65536
+    const targetListIds = Array.from(firstListPerBoard.values())
 
-    // 5. Insert Anomaly Card
-    const { error: insertError } = await supabase
+    if (targetListIds.length === 0) {
+        return { error: `無法找到合適的清單來插入卡片。` }
+    }
+
+    // 4. Batch determine new order (Fetch max order for each target list)
+    const { data: maxOrdersData, error: maxOrdersError } = await supabase
         .from('cards')
-        .insert({
-            list_id: listData.id,
+        .select('list_id, order')
+        .in('list_id', targetListIds)
+
+    const maxOrderPerList = new Map<string, number>()
+    if (maxOrdersData) {
+        for (const card of maxOrdersData) {
+            const currentMax = maxOrderPerList.get(card.list_id) || 0
+            if (card.order > currentMax) {
+                maxOrderPerList.set(card.list_id, card.order)
+            }
+        }
+    }
+
+    // 5. Prepare bulk insert data
+    const cardsToInsert = targetListIds.map(listId => {
+        const currentMaxOrder = maxOrderPerList.get(listId) || 0
+        const newOrder = currentMaxOrder > 0 ? currentMaxOrder + 65536 : 65536
+
+        return {
+            list_id: listId,
             title,
             description,
             order: newOrder,
@@ -61,13 +92,23 @@ export async function reportAnomaly(currentDeptId: string, targetDeptId: string,
             source_department_id: currentDeptId,
             status: 'open',
             created_by: user.id
-        })
+        }
+    })
+
+    // 6. Bulk Insert
+    const { error: insertError } = await supabase
+        .from('cards')
+        .insert(cardsToInsert)
 
     if (insertError) {
         return { error: `送出失敗：${insertError.message}` }
     }
 
-    revalidatePath(`/department/${targetDeptId}`)
+    // 7. Revalidate UI for all targeted departments
+    for (const deptId of targetDeptIds) {
+        revalidatePath(`/department/${deptId}`)
+    }
+
     return { success: true }
 }
 

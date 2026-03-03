@@ -19,7 +19,7 @@ import { reportAnomaly } from '@/app/actions/cards'
 import { useLocaleStore } from '@/store/useLocaleStore'
 import { dictionaries } from '@/lib/i18n/dictionaries'
 import { AlertTriangle } from 'lucide-react'
-
+import { Checkbox } from '@/components/ui/checkbox'
 interface AnomalyReportDialogProps {
     currentDepartmentId: string
     currentDepartmentName: string
@@ -31,8 +31,8 @@ export default function AnomalyReportDialog({ currentDepartmentId, currentDepart
     const { locale } = useLocaleStore()
     const dict = dictionaries[locale].board
 
-    const [parents, setParents] = useState<{ id: string, name: string }[]>([])
-    const [selectedParentId, setSelectedParentId] = useState<string>('')
+    const [departments, setDepartments] = useState<{ id: string, name: string }[]>([])
+    const [selectedTargetIds, setSelectedTargetIds] = useState<string[]>([])
     const [title, setTitle] = useState('')
     const [description, setDescription] = useState('')
     const [isSubmitting, setIsSubmitting] = useState(false)
@@ -40,39 +40,32 @@ export default function AnomalyReportDialog({ currentDepartmentId, currentDepart
     useEffect(() => {
         if (!isOpen) return
 
-        const fetchParents = async () => {
+        const fetchDepartments = async () => {
             const supabase = createClient()
+
+            // Fetch all departments
             const { data } = await supabase
                 .from('departments')
-                .select('parent_ids')
-                .eq('id', currentDepartmentId)
-                .single()
+                .select('id, name')
+                .order('name')
 
-            if (data?.parent_ids && data.parent_ids.length > 0) {
-                const { data: parentDepts } = await supabase
-                    .from('departments')
-                    .select('id, name')
-                    .in('id', data.parent_ids)
-
-                if (parentDepts) {
-                    setParents(parentDepts)
-                    if (parentDepts.length === 1) {
-                        setSelectedParentId(parentDepts[0].id)
-                    }
-                }
+            if (data) {
+                // Exclude current department from the list
+                const otherDepts = data.filter(d => d.id !== currentDepartmentId)
+                setDepartments(otherDepts)
             } else {
-                setParents([])
+                setDepartments([])
             }
         }
 
-        fetchParents()
+        fetchDepartments()
     }, [isOpen, currentDepartmentId])
 
     const handleSubmit = async () => {
-        if (!title.trim() || !selectedParentId) return
+        if (!title.trim() || selectedTargetIds.length === 0) return
 
         setIsSubmitting(true)
-        const res = await reportAnomaly(currentDepartmentId, selectedParentId, title.trim(), description.trim())
+        const res = await reportAnomaly(currentDepartmentId, selectedTargetIds, title.trim(), description.trim())
         setIsSubmitting(false)
 
         if (res.error) {
@@ -82,6 +75,7 @@ export default function AnomalyReportDialog({ currentDepartmentId, currentDepart
             onOpenChange(false)
             setTitle('')
             setDescription('')
+            setSelectedTargetIds([])
         }
     }
 
@@ -103,21 +97,31 @@ export default function AnomalyReportDialog({ currentDepartmentId, currentDepart
                 <div className="flex flex-col gap-4 py-4">
                     <div className="grid gap-2">
                         <Label className="text-slate-700">{dict.target_department || 'Target Department'}</Label>
-                        {parents.length === 0 ? (
+                        {departments.length === 0 ? (
                             <div className="text-sm text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
                                 {dict.no_parent_dept || 'This department has no parent department to report to.'}
                             </div>
                         ) : (
-                            <select
-                                value={selectedParentId}
-                                onChange={(e) => setSelectedParentId(e.target.value)}
-                                className="flex h-10 w-full items-center justify-between rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                            >
-                                <option value="" disabled>{dict.select_parent || 'Select a parent department'}</option>
-                                {parents.map(p => (
-                                    <option key={p.id} value={p.id}>{p.name}</option>
+                            <div className="flex flex-col gap-2 max-h-40 overflow-y-auto p-3 border border-slate-200 rounded-md bg-white">
+                                {departments.map(dept => (
+                                    <label key={dept.id} className="flex items-center space-x-2 cursor-pointer p-1 hover:bg-slate-50 rounded">
+                                        <Checkbox
+                                            checked={selectedTargetIds.includes(dept.id)}
+                                            onCheckedChange={(checked) => {
+                                                if (checked) {
+                                                    setSelectedTargetIds(prev => [...prev, dept.id])
+                                                } else {
+                                                    setSelectedTargetIds(prev => prev.filter(id => id !== dept.id))
+                                                }
+                                            }}
+                                            className="data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600"
+                                        />
+                                        <span className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-slate-700">
+                                            {dept.name}
+                                        </span>
+                                    </label>
                                 ))}
-                            </select>
+                            </div>
                         )}
                     </div>
 
@@ -149,7 +153,7 @@ export default function AnomalyReportDialog({ currentDepartmentId, currentDepart
                     <Button
                         variant="destructive"
                         onClick={handleSubmit}
-                        disabled={isSubmitting || !title.trim() || !selectedParentId}
+                        disabled={isSubmitting || !title.trim() || selectedTargetIds.length === 0}
                     >
                         {isSubmitting ? '...' : dict.submit_report || 'Submit Report'}
                     </Button>
