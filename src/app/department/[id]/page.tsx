@@ -137,7 +137,7 @@ export default async function DepartmentBoardPage({
             {/* Board Layout Area */}
             <main className="flex-1 overflow-hidden pt-6 relative">
                 {boardData ? (
-                    <KanbanBoard initialLists={boardData.lists} userProfile={profile} boardId={boardInfo!.id} departments={departments} systemUsers={systemUsers} />
+                    <KanbanBoard initialLists={boardData.lists} userProfile={profile} boardId={boardInfo!.id} departmentId={department.id} departments={departments} systemUsers={systemUsers} />
                 ) : (
                     <div className="flex flex-col items-center justify-center h-full text-white">
                         <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-4 opacity-70"><rect width="18" height="18" x="3" y="3" rx="2" /><path d="M7 7h.01" /><path d="M17 7h.01" /><path d="M7 17h.01" /><path d="M17 17h.01" /></svg>
