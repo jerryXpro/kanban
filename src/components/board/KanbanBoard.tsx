@@ -30,6 +30,7 @@ interface KanbanBoardProps {
     initialLists: ListWithCards[]
     userProfile?: Profile
     boardId: string
+    departmentId: string
     departments?: Department[]
     systemUsers?: { id: string, full_name: string | null, role: string }[]
 }
@@ -41,7 +42,7 @@ const calculateNewOrder = (items: { order: number }[], newIndex: number) => {
     return (prevOrder + nextOrder) / 2.0
 }
 
-export default function KanbanBoard({ initialLists, userProfile, boardId, departments = [], systemUsers = [] }: KanbanBoardProps) {
+export default function KanbanBoard({ initialLists, userProfile, boardId, departmentId, departments = [], systemUsers = [] }: KanbanBoardProps) {
     const [lists, setLists] = useState<ListWithCards[]>(initialLists)
     const [activeCard, setActiveCard] = useState<Card | null>(null)
     const [activeList, setActiveList] = useState<ListWithCards | null>(null)
@@ -62,6 +63,10 @@ export default function KanbanBoard({ initialLists, userProfile, boardId, depart
     const canManageGlobal = userProfile?.can_manage_global_messages || false
 
     const supabase = createClient()
+
+    // Tracks IDs of cards that are currently being dragged or awaiting DB update,
+    // so that Realtime subscription doesn't override optimistic UI state and cause jumping/reverting.
+    const pendingCardUpdateIdsRef = useRef<Set<string>>(new Set())
 
     // Track ONLY the list IDs that belong to THIS board (not inherited shared lists from ancestors).
     // This prevents Realtime card INSERTs (e.g. anomaly cards inserted into a parent dept's list)
@@ -99,23 +104,48 @@ export default function KanbanBoard({ initialLists, userProfile, boardId, depart
                     const oldCard = payload.old as Card
 
                     if (payload.eventType === 'INSERT') {
-                        // Only handle INSERT for lists that belong to THIS board.
-                        // Anomaly cards are inserted into the PARENT dept's list, so their
-                        // list_id won't be in ownBoardListIds — this prevents them from
-                        // showing up on sibling department boards via Realtime.
-                        if (!ownBoardListIdsRef.current.has(newCard.list_id)) return
+                        setLists(current => {
+                            const targetList = current.find(l => l.id === newCard.list_id)
+                            if (!targetList) return current // Not on our board
 
-                        setLists(current => current.map(list =>
-                            list.id === newCard.list_id
-                                ? { ...list, cards: [...list.cards, newCard].sort((a, b) => a.order - b.order) }
-                                : list
-                        ))
+                            if (!ownBoardListIdsRef.current.has(newCard.list_id)) {
+                                // It's a shared/ancestor list
+                                if (newCard.card_type === 'anomaly') {
+                                    // Only the source department should see it injected into an ancestor list
+                                    if (newCard.source_department_id !== departmentId) return current
+                                }
+                            }
+
+                            return current.map(list =>
+                                list.id === newCard.list_id
+                                    ? { ...list, cards: [...list.cards, newCard].sort((a, b) => a.order - b.order) }
+                                    : list
+                            )
+                        })
                     } else if (payload.eventType === 'UPDATE') {
                         setLists(current => {
+                            const targetList = current.find(l => l.id === newCard.list_id)
+                            // If it's moved to a list NOT on our board, we still might need to remove it from old list
+                            // so we will process removing it first anyway.
+
+                            let visible = true
+                            if (targetList && !ownBoardListIdsRef.current.has(newCard.list_id)) {
+                                if (newCard.card_type === 'anomaly') {
+                                    if (newCard.source_department_id !== departmentId) visible = false
+                                }
+                            }
+
+                            // If this card is currently being dragged/updated locally, ignore incoming server UPDATE
+                            // so it doesn't revert our optimistic state.
+                            if (pendingCardUpdateIdsRef.current.has(newCard.id)) return current
+
                             const removedList = current.map(list => ({
                                 ...list,
                                 cards: list.cards.filter(c => c.id !== newCard.id)
                             }))
+
+                            if (!targetList || !visible) return removedList
+
                             return removedList.map(list =>
                                 list.id === newCard.list_id
                                     ? { ...list, cards: [...list.cards, newCard].sort((a, b) => a.order - b.order) }
@@ -192,6 +222,7 @@ export default function KanbanBoard({ initialLists, userProfile, boardId, depart
             setActiveList(data.list)
         } else if (data?.type === 'Card') {
             setActiveCard(data.card)
+            pendingCardUpdateIdsRef.current.add(data.card.id)
         }
     }
 
@@ -337,8 +368,14 @@ export default function KanbanBoard({ initialLists, userProfile, boardId, depart
 
             // Async DB Update
             if (shouldUpdateDB && targetListId) {
+                // We keep it in the pending set until the db responds
                 await supabase.from('cards').update({ list_id: targetListId, order: targetCardOrder }).eq('id', activeId)
             }
+
+            // Allow a small buffer before letting server take over again (so slow subscriptions don't bounce it back)
+            setTimeout(() => {
+                pendingCardUpdateIdsRef.current.delete(activeId)
+            }, 1000)
         }
     }
 

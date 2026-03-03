@@ -106,8 +106,9 @@ export async function reportAnomaly(currentDeptId: string, targetDeptIds: string
 
     // 7. Revalidate UI for all targeted departments
     for (const deptId of targetDeptIds) {
-        revalidatePath(`/department/${deptId}`)
+        revalidatePath(`/department/${deptId}`, 'page')
     }
+    revalidatePath('/', 'layout')
 
     return { success: true }
 }
@@ -129,15 +130,32 @@ export async function updateCard(
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: '尚未登入' }
 
+    const { data: currentCard } = await supabase.from('cards').select('list_id, assigned_department_id').eq('id', cardId).single()
+
+    let updatePayload: any = {
+        title: title.trim(),
+        description: description.trim(),
+        updated_at: new Date().toISOString(),
+        assigned_user_id: assignedUserId !== undefined && assignedUserId !== 'none' ? assignedUserId : null,
+        assigned_department_id: assignedDeptId !== undefined && assignedDeptId !== 'none' ? assignedDeptId : null
+    }
+
+    if (updatePayload.assigned_department_id && updatePayload.assigned_department_id !== currentCard?.assigned_department_id) {
+        const { data: boardData } = await supabase.from('boards').select('id').eq('department_id', updatePayload.assigned_department_id).single()
+        if (boardData) {
+            const { data: listData } = await supabase.from('lists').select('id').eq('board_id', boardData.id).order('order', { ascending: true }).limit(1).single()
+            if (listData) {
+                updatePayload.list_id = listData.id
+
+                const { data: maxOrderData } = await supabase.from('cards').select('order').eq('list_id', listData.id).order('order', { ascending: false }).limit(1).single()
+                updatePayload.order = maxOrderData ? maxOrderData.order + 65536 : 65536
+            }
+        }
+    }
+
     const { error } = await supabase
         .from('cards')
-        .update({
-            title: title.trim(),
-            description: description.trim(),
-            updated_at: new Date().toISOString(),
-            assigned_user_id: assignedUserId !== undefined ? assignedUserId : null,
-            assigned_department_id: assignedDeptId !== undefined ? assignedDeptId : null
-        })
+        .update(updatePayload)
         .eq('id', cardId)
 
     if (error) return { error: `更新失敗：${error.message}` }
