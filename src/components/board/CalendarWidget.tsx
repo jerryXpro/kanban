@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { ChevronLeft, ChevronRight, Calendar, RefreshCw, AlertCircle, Settings } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 interface CalendarEvent {
     id: string
@@ -73,7 +74,6 @@ export default function CalendarWidget({ calendarId }: CalendarWidgetProps) {
     const [error, setError] = useState<string | null>(null)
     const [viewMode, setViewMode] = useState<ViewMode>('twoWeeks')
     const [expanded, setExpanded] = useState(true)
-    const [hoveredEvent, setHoveredEvent] = useState<string | null>(null)
     const [offsetWeeks, setOffsetWeeks] = useState(0) // for two-week view navigation
     const [offsetMonths, setOffsetMonths] = useState(0) // for month view navigation
 
@@ -240,37 +240,36 @@ export default function CalendarWidget({ calendarId }: CalendarWidgetProps) {
                                                         <div className="h-3 bg-white/10 rounded animate-pulse w-3/4" />
                                                     ) : dayEvents.length === 0 ? null : (
                                                         <>
-                                                            {dayEvents.slice(0, 2).map(event => (
-                                                                <div
-                                                                    key={event.id}
-                                                                    className="relative group"
-                                                                    onMouseEnter={() => setHoveredEvent(event.id!)}
-                                                                    onMouseLeave={() => setHoveredEvent(null)}
-                                                                >
-                                                                    <div
-                                                                        className="text-[10px] leading-tight px-1 py-0.5 rounded truncate cursor-default"
-                                                                        style={{ backgroundColor: getEventColor(event) + '99', borderLeft: `2px solid ${getEventColor(event)}` }}
-                                                                        title={event.title}
-                                                                    >
-                                                                        {!event.isAllDay && (
-                                                                            <span className="opacity-70 mr-0.5">{formatTime(event.start)}</span>
-                                                                        )}
-                                                                        {event.title}
-                                                                    </div>
-                                                                    {/* Hover Tooltip */}
-                                                                    {hoveredEvent === event.id && (
-                                                                        <div className="absolute z-50 left-0 top-full mt-1 w-48 bg-slate-800 text-white text-xs rounded-md shadow-xl p-2 border border-white/10 pointer-events-none">
-                                                                            <p className="font-semibold mb-1">{event.title}</p>
+                                                            <TooltipProvider delayDuration={0}>
+                                                                {dayEvents.slice(0, 2).map(event => (
+                                                                    <Tooltip key={event.id}>
+                                                                        <TooltipTrigger asChild>
+                                                                            <div
+                                                                                className="text-[10px] leading-tight px-1 py-0.5 rounded truncate cursor-default"
+                                                                                style={{ backgroundColor: getEventColor(event) + '99', borderLeft: `2px solid ${getEventColor(event)}` }}
+                                                                            >
+                                                                                {!event.isAllDay && (
+                                                                                    <span className="opacity-70 mr-0.5">{formatTime(event.start)}</span>
+                                                                                )}
+                                                                                {event.title}
+                                                                            </div>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent
+                                                                            side="bottom"
+                                                                            align="start"
+                                                                            className="z-[999] w-48 bg-slate-800 text-white border-white/10 shadow-xl"
+                                                                        >
+                                                                            <p className="font-semibold mb-1 text-xs">{event.title}</p>
                                                                             {!event.isAllDay && (
-                                                                                <p className="opacity-70">{formatTime(event.start)} – {formatTime(event.end)}</p>
+                                                                                <p className="opacity-70 text-xs">{formatTime(event.start)} – {formatTime(event.end)}</p>
                                                                             )}
-                                                                            {event.isAllDay && <p className="opacity-70">全天</p>}
-                                                                            {event.location && <p className="opacity-70 mt-1">📍 {event.location}</p>}
-                                                                            {event.description && <p className="opacity-60 mt-1 line-clamp-3">{event.description}</p>}
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            ))}
+                                                                            {event.isAllDay && <p className="opacity-70 text-xs">全天</p>}
+                                                                            {event.location && <p className="opacity-70 mt-1 text-xs">📍 {event.location}</p>}
+                                                                            {event.description && <p className="opacity-60 mt-1 line-clamp-3 text-xs">{event.description}</p>}
+                                                                        </TooltipContent>
+                                                                    </Tooltip>
+                                                                ))}
+                                                            </TooltipProvider>
                                                             {dayEvents.length > 2 && (
                                                                 <div className="text-[10px] opacity-60 px-1">+{dayEvents.length - 2} 更多</div>
                                                             )}
