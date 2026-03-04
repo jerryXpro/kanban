@@ -200,15 +200,15 @@ export default function CalendarWidget({ calendarId }: CalendarWidgetProps) {
             {/* Calendar Grid */}
             {expanded && (
                 <div className="overflow-x-auto">
-                    {!isConfigured && !isLoading ? (
-                        <div className="flex items-center gap-2 px-4 py-3 text-white/60 text-xs">
-                            <AlertCircle className="h-4 w-4 shrink-0" />
-                            <span>尚未設定 Google 行事曆。請在 Vercel / .env.local 加入 <code className="bg-white/10 px-1 rounded">GOOGLE_SERVICE_ACCOUNT_KEY</code> 與 <code className="bg-white/10 px-1 rounded">GOOGLE_CALENDAR_ID</code>。</span>
-                        </div>
-                    ) : error ? (
+                    {error && !isLoading ? (
                         <div className="flex items-center gap-2 px-4 py-3 text-red-300 text-xs">
                             <AlertCircle className="h-4 w-4 shrink-0" />
                             <span>載入失敗：{error}</span>
+                        </div>
+                    ) : !isConfigured && !isLoading ? (
+                        <div className="flex items-center gap-2 px-4 py-3 text-white/60 text-xs">
+                            <AlertCircle className="h-4 w-4 shrink-0" />
+                            <span>尚未設定 Google 行事曆。請在 Vercel / .env.local 加入 <code className="bg-white/10 px-1 rounded">GOOGLE_SERVICE_ACCOUNT_KEY</code> 與 <code className="bg-white/10 px-1 rounded">GOOGLE_CALENDAR_ID</code>。</span>
                         </div>
                     ) : (
                         <div className="min-w-[700px]">
