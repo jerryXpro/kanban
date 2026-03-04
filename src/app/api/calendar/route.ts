@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { google } from 'googleapis'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const calendarId = searchParams.get('calendarId') || process.env.GOOGLE_CALENDAR_ID
