@@ -12,6 +12,14 @@ export async function createUser(data: {
     role: string
     isDepartmentAdmin: boolean
 }) {
+    // 0. Pre-flight check for Service Role Key
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        return {
+            success: false,
+            error: 'Server Misconfiguration: 缺少 SUPABASE_SERVICE_ROLE_KEY 環境變數。新增使用者必須使用 Service Role Key 才能呼叫 Admin API。'
+        }
+    }
+
     // 1. Authenticate and Authorize
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()

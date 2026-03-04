@@ -153,66 +153,66 @@ export default function UserManagement({ initialUsers, departments }: { initialU
                     <table className="w-full text-sm text-left">
                         <thead className="bg-slate-50 text-slate-600 font-medium border-b border-slate-200">
                             <tr>
-                                <th className="px-6 py-4">User</th>
-                                <th className="px-6 py-4">Department</th>
-                                <th className="px-6 py-4">Display Title (Role)</th>
-                                <th className="px-6 py-4 text-center">Global Admin</th>
-                                <th className="px-6 py-4 text-center">Dept Admin</th>
-                                <th className="px-6 py-4 text-center">Manage Global Msgs</th>
-                                <th className="px-6 py-4 text-center">Manage Lists</th>
-                                <th className="px-6 py-4 text-center">Actions</th>
+                                <th className="px-3 py-3 w-[20%]">User</th>
+                                <th className="px-3 py-3 w-[15%]">Department</th>
+                                <th className="px-3 py-3 w-[15%]">Role</th>
+                                <th className="px-2 py-3 text-center whitespace-nowrap text-xs">Global<br />Admin</th>
+                                <th className="px-2 py-3 text-center whitespace-nowrap text-xs">Dept<br />Admin</th>
+                                <th className="px-2 py-3 text-center whitespace-nowrap text-xs">Manage<br />Global</th>
+                                <th className="px-2 py-3 text-center whitespace-nowrap text-xs">Manage<br />Lists</th>
+                                <th className="px-3 py-3 text-center">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                             {users.map((user) => (
                                 <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
-                                    <td className="px-6 py-4">
-                                        <div className="font-medium text-slate-900">{user.full_name || 'No Name'}</div>
-                                        <div className="text-slate-500 text-xs">{user.email}</div>
+                                    <td className="px-3 py-3 truncate max-w-[200px]" title={user.email || ''}>
+                                        <div className="font-medium text-slate-900 truncate">{user.full_name || 'No Name'}</div>
+                                        <div className="text-slate-500 text-xs truncate">{user.email}</div>
                                     </td>
-                                    <td className="px-6 py-4 text-slate-600">
+                                    <td className="px-3 py-3 text-slate-600 truncate max-w-[120px]" title={user.department?.name || ''}>
                                         {user.department?.name || '-'}
                                     </td>
-                                    <td className="px-6 py-4">
+                                    <td className="px-3 py-3">
                                         <Input
                                             value={user.role || ''}
                                             onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                                            className="h-8 max-w-[150px]"
+                                            className="h-8 w-full min-w-[80px]"
                                         />
                                     </td>
-                                    <td className="px-6 py-4 text-center">
+                                    <td className="px-2 py-3 text-center">
                                         <Checkbox
                                             checked={user.is_admin}
                                             onCheckedChange={(c) => handleToggle(user.id, 'is_admin', c as boolean)}
                                         />
                                     </td>
-                                    <td className="px-6 py-4 text-center">
+                                    <td className="px-2 py-3 text-center">
                                         <Checkbox
                                             checked={user.is_department_admin}
                                             onCheckedChange={(c) => handleToggle(user.id, 'is_department_admin', c as boolean)}
                                         />
                                     </td>
-                                    <td className="px-6 py-4 text-center">
+                                    <td className="px-2 py-3 text-center">
                                         <Checkbox
                                             checked={user.can_manage_global_messages}
                                             onCheckedChange={(c) => handleToggle(user.id, 'can_manage_global_messages', c as boolean)}
                                         />
                                     </td>
-                                    <td className="px-6 py-4 text-center">
+                                    <td className="px-2 py-3 text-center">
                                         <Checkbox
                                             checked={user.can_manage_lists}
                                             onCheckedChange={(c) => handleToggle(user.id, 'can_manage_lists', c as boolean)}
                                         />
                                     </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center justify-center gap-2">
+                                    <td className="px-3 py-3">
+                                        <div className="flex items-center justify-center gap-1.5">
                                             <Button
                                                 size="sm"
                                                 onClick={() => handleSave(user.id)}
                                                 disabled={savingId === user.id}
-                                                className="h-8 w-24 shadow-none bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
+                                                className="h-8 px-2 shadow-none bg-indigo-50 text-indigo-700 hover:bg-indigo-100 whitespace-nowrap"
                                             >
-                                                {savingId === user.id ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+                                                {savingId === user.id ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1" />}
                                                 Save
                                             </Button>
                                             <Button
@@ -221,7 +221,7 @@ export default function UserManagement({ initialUsers, departments }: { initialU
                                                 onClick={() => handleDelete(user.id, user.full_name || '')}
                                                 disabled={deletingId === user.id}
                                                 title="刪除此帳號"
-                                                className="h-8 w-8 p-0"
+                                                className="h-8 w-8 p-0 shrink-0"
                                             >
                                                 {deletingId === user.id ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                                             </Button>
