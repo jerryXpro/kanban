@@ -10,6 +10,7 @@ import InitializeBoardButton from '@/components/board/InitializeBoardButton'
 import { getSetting } from '@/lib/api/settings'
 import { cookies } from 'next/headers'
 import DepartmentPasswordPrompt from '@/components/department/DepartmentPasswordPrompt'
+import CalendarWidget from '@/components/board/CalendarWidget'
 
 export const dynamic = 'force-dynamic'
 
@@ -133,6 +134,9 @@ export default async function DepartmentBoardPage({
                 isAdmin={!!profile?.is_admin}
                 workspaceName={workspaceName}
             />
+
+            {/* Google Calendar Widget */}
+            <CalendarWidget calendarId={department.calendar_id || undefined} />
 
             {/* Board Layout Area */}
             <main className="flex-1 overflow-hidden pt-6 relative">
