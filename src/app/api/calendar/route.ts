@@ -5,14 +5,14 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
-    const calendarId = searchParams.get('calendarId') || process.env.GOOGLE_CALENDAR_ID
+    const calendarId = searchParams.get('calendarId') || process.env['GOOGLE_CALENDAR_ID']
     const viewMode = searchParams.get('view') || 'twoWeeks' // 'twoWeeks' | 'month'
 
     if (!calendarId) {
         return NextResponse.json({ error: 'No calendar ID provided' }, { status: 400 })
     }
 
-    const serviceAccountKeyRaw = process.env.GOOGLE_SERVICE_ACCOUNT_KEY
+    const serviceAccountKeyRaw = process.env['GOOGLE_SERVICE_ACCOUNT_KEY']
     if (!serviceAccountKeyRaw) {
         // Return empty events so the UI can show a placeholder state
         return NextResponse.json({ events: [], configured: false })
