@@ -60,10 +60,18 @@ function getEventsForDay(events: CalendarEvent[], day: Date): CalendarEvent[] {
     return events.filter(event => {
         if (!event.start) return false
         const startDate = new Date(event.start)
-        const endDate = event.end ? new Date(event.end) : startDate
+        let endDate = event.end ? new Date(event.end) : startDate
+
+        // Google Calendar API all-day events have exclusive end dates
+        // e.g. Start 2026-03-13, End 2026-03-14 means it only spans the 13th.
+        // We subtract 1 millisecond so it falls back to 23:59:59 of the actual last day.
+        if (event.isAllDay && event.end && startDate < endDate) {
+            endDate = new Date(endDate.getTime() - 1)
+        }
+
         const dayStart = new Date(day); dayStart.setHours(0, 0, 0, 0)
         const dayEnd = new Date(day); dayEnd.setHours(23, 59, 59, 999)
-        // All-day events use date-only strings "YYYY-MM-DD" which should be treated as covering the whole day
+
         return startDate <= dayEnd && endDate >= dayStart
     })
 }
