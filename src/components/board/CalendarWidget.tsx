@@ -59,8 +59,19 @@ function getDaysInRange(start: Date, end: Date): Date[] {
 function getEventsForDay(events: CalendarEvent[], day: Date): CalendarEvent[] {
     return events.filter(event => {
         if (!event.start) return false
-        const startDate = new Date(event.start)
-        let endDate = event.end ? new Date(event.end) : startDate
+
+        // Helper to parse dates safely into local time 
+        // to prevent 'YYYY-MM-DD' from defaulting to UTC midnight and shifting by +8 hours
+        const parseEventDate = (dateStr: string) => {
+            if (!dateStr.includes('T')) {
+                const [y, m, d] = dateStr.split('-').map(Number)
+                return new Date(y, m - 1, d)
+            }
+            return new Date(dateStr)
+        }
+
+        const startDate = parseEventDate(event.start)
+        let endDate = event.end ? parseEventDate(event.end) : startDate
 
         // Google Calendar API all-day events have exclusive end dates
         // e.g. Start 2026-03-13, End 2026-03-14 means it only spans the 13th.
