@@ -165,7 +165,7 @@ export default function KanbanList({ list, cards, userProfile, isOverlay, depart
                     )}
                 </div>
 
-                {!list.is_global && !isAnomalyList && (
+                {(!list.is_global || userProfile?.can_manage_global_messages) && !isAnomalyList && (
                     isEditing ? (
                         <div className="flex gap-1 shrink-0 ml-2">
                             <button onPointerDown={(e) => e.stopPropagation()} onClick={() => handleSaveList()} className="text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 px-2 py-1 rounded">{dict.save}</button>

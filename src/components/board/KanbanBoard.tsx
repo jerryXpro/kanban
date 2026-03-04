@@ -52,15 +52,13 @@ export default function KanbanBoard({ initialLists, userProfile, boardId, depart
     const [isAddingList, setIsAddingList] = useState(false)
     const [newListTitle, setNewListTitle] = useState('')
 
-    // New Hierarchy/Targeting State
-    const [isGlobalList, setIsGlobalList] = useState(false)
-    const [targetDepartmentId, setTargetDepartmentId] = useState<string>('none')
+
 
     const { locale } = useLocaleStore()
     const dict = dictionaries[locale].board
 
     const canAddList = userProfile?.can_manage_lists || false
-    const canManageGlobal = userProfile?.can_manage_global_messages || false
+
 
     const supabase = createClient()
 
@@ -392,21 +390,13 @@ export default function KanbanBoard({ initialLists, userProfile, boardId, depart
             board_id: boardId,
             title: newListTitle.trim(),
             order: newOrder,
-        }
-
-        if (canManageGlobal) {
-            payload.is_global = isGlobalList
-            payload.target_department_id = targetDepartmentId !== 'none' ? targetDepartmentId : null
-        } else {
-            payload.is_global = false
+            is_global: false,
         }
 
         const { error } = await supabase.from('lists').insert(payload)
 
         if (!error) {
             setNewListTitle('')
-            setIsGlobalList(false)
-            setTargetDepartmentId('none')
             setIsAddingList(false)
         } else {
             console.error(error)
@@ -459,35 +449,6 @@ export default function KanbanBoard({ initialLists, userProfile, boardId, depart
                                 }}
                             />
 
-                            {canManageGlobal && (
-                                <div className="flex flex-col gap-2 p-2 bg-slate-50 rounded-md border border-slate-100 text-xs">
-                                    <label className="flex items-center gap-2 cursor-pointer text-slate-700">
-                                        <input
-                                            type="checkbox"
-                                            checked={isGlobalList}
-                                            onChange={(e) => setIsGlobalList(e.target.checked)}
-                                            className="rounded text-indigo-600 focus:ring-indigo-500"
-                                        />
-                                        Make Global (All sub-departments)
-                                    </label>
-
-                                    {isGlobalList && departments && departments.length > 0 && (
-                                        <div className="flex flex-col gap-1 mt-1">
-                                            <span className="text-slate-500">Target Specific Sub-department:</span>
-                                            <select
-                                                value={targetDepartmentId}
-                                                onChange={(e) => setTargetDepartmentId(e.target.value)}
-                                                className="w-full p-1.5 rounded border border-slate-200 text-slate-700 focus:ring-1 focus:ring-indigo-400 outline-none"
-                                            >
-                                                <option value="none">-- All Sub-departments --</option>
-                                                {departments.map(d => (
-                                                    <option key={d.id} value={d.id}>{d.name}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
 
                             <div className="flex items-center gap-2 mt-1">
                                 <button
