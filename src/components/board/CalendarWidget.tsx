@@ -17,6 +17,7 @@ interface CalendarEvent {
 }
 
 type ViewMode = 'twoWeeks' | 'month'
+type TextSize = 'sm' | 'md' | 'lg'
 
 interface CalendarWidgetProps {
     calendarId?: string
@@ -73,6 +74,7 @@ export default function CalendarWidget({ calendarId }: CalendarWidgetProps) {
     const [isConfigured, setIsConfigured] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [viewMode, setViewMode] = useState<ViewMode>('twoWeeks')
+    const [textSize, setTextSize] = useState<TextSize>('sm')
     const [expanded, setExpanded] = useState(true)
     const [offsetWeeks, setOffsetWeeks] = useState(0) // for two-week view navigation
     const [offsetMonths, setOffsetMonths] = useState(0) // for month view navigation
@@ -145,6 +147,8 @@ export default function CalendarWidget({ calendarId }: CalendarWidgetProps) {
         rows.push(days.slice(i, i + 7))
     }
 
+    const textSizeClass = textSize === 'sm' ? 'text-[10px]' : textSize === 'md' ? 'text-xs' : 'text-sm'
+
     return (
         <div className="bg-white/10 backdrop-blur-sm border-b border-white/20 text-white select-none">
             {/* Header Bar */}
@@ -165,6 +169,31 @@ export default function CalendarWidget({ calendarId }: CalendarWidgetProps) {
                         className={`px-3 py-1 text-xs font-medium transition-colors ${viewMode === 'month' ? 'bg-white/20 text-white' : 'text-white/60 hover:text-white hover:bg-white/10'}`}
                     >
                         月
+                    </button>
+                </div>
+
+                {/* Text Size Toggle */}
+                <div className="flex items-center bg-white/10 rounded-md overflow-hidden border border-white/20 ml-2">
+                    <button
+                        onClick={() => setTextSize('sm')}
+                        className={`px-2 py-1 text-[10px] font-medium transition-colors ${textSize === 'sm' ? 'bg-white/20 text-white' : 'text-white/60 hover:text-white hover:bg-white/10'}`}
+                        title="小字體"
+                    >
+                        小
+                    </button>
+                    <button
+                        onClick={() => setTextSize('md')}
+                        className={`px-2 py-1 text-xs font-medium transition-colors ${textSize === 'md' ? 'bg-white/20 text-white' : 'text-white/60 hover:text-white hover:bg-white/10'}`}
+                        title="中字體"
+                    >
+                        中
+                    </button>
+                    <button
+                        onClick={() => setTextSize('lg')}
+                        className={`px-2 py-1 text-sm font-medium transition-colors ${textSize === 'lg' ? 'bg-white/20 text-white' : 'text-white/60 hover:text-white hover:bg-white/10'}`}
+                        title="大字體"
+                    >
+                        大
                     </button>
                 </div>
 
@@ -226,10 +255,10 @@ export default function CalendarWidget({ calendarId }: CalendarWidgetProps) {
                                             >
                                                 {/* Day Header */}
                                                 <div className="flex items-baseline gap-1 mb-1">
-                                                    <span className={`text-[10px] leading-none ${isToday ? 'bg-white text-indigo-600 rounded-sm px-1 py-0.5 font-bold' : 'opacity-70'}`}>
+                                                    <span className={`leading-none ${textSizeClass} ${isToday ? 'bg-white text-indigo-600 rounded-sm px-1 py-0.5 font-bold' : 'opacity-70'}`}>
                                                         {day.getDate()}
                                                     </span>
-                                                    <span className={`text-[10px] leading-none opacity-50 ${isWeekend ? 'text-red-300 opacity-70' : ''}`}>
+                                                    <span className={`leading-none opacity-50 ${textSizeClass} ${isWeekend ? 'text-red-300 opacity-70' : ''}`}>
                                                         {WEEKDAYS_ZH[day.getDay()]}
                                                     </span>
                                                 </div>
@@ -245,7 +274,7 @@ export default function CalendarWidget({ calendarId }: CalendarWidgetProps) {
                                                                     <Tooltip key={event.id}>
                                                                         <TooltipTrigger asChild>
                                                                             <div
-                                                                                className="text-[10px] leading-tight px-1 py-0.5 rounded truncate cursor-default"
+                                                                                className={`leading-tight px-1 py-0.5 rounded truncate cursor-default ${textSizeClass}`}
                                                                                 style={{ backgroundColor: getEventColor(event) + '99', borderLeft: `2px solid ${getEventColor(event)}` }}
                                                                             >
                                                                                 {!event.isAllDay && (
@@ -271,7 +300,7 @@ export default function CalendarWidget({ calendarId }: CalendarWidgetProps) {
                                                                 ))}
                                                             </TooltipProvider>
                                                             {dayEvents.length > 2 && (
-                                                                <div className="text-[10px] opacity-60 px-1">+{dayEvents.length - 2} 更多</div>
+                                                                <div className={`opacity-60 px-1 ${textSizeClass}`}>+{dayEvents.length - 2} 更多</div>
                                                             )}
                                                         </>
                                                     )}
