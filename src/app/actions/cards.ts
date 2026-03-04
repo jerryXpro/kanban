@@ -107,7 +107,7 @@ export async function reportAnomaly(currentDeptId: string, targetDeptIds: string
         }
     })
 
-    // 6. Bulk Insert
+    // 6. Bulk Insert to target departments
     const { error: insertError } = await supabase
         .from('cards')
         .insert(cardsToInsert)
@@ -116,10 +116,82 @@ export async function reportAnomaly(currentDeptId: string, targetDeptIds: string
         return { error: `送出失敗：${insertError.message}` }
     }
 
-    // 7. Revalidate UI for all targeted departments
+    // 6b. Also create a "sent" copy in the SOURCE department's anomaly list
+    const { data: srcBoard } = await supabase
+        .from('boards')
+        .select('id')
+        .eq('department_id', currentDeptId)
+        .neq('is_active', false)
+        .single()
+
+    if (srcBoard) {
+        // Find or create anomaly list for source board
+        let srcAnomalyListId: string | null = null
+        const { data: srcAnomalyList } = await supabase
+            .from('lists')
+            .select('id')
+            .eq('board_id', srcBoard.id)
+            .eq('list_type', 'anomaly')
+            .single()
+
+        if (srcAnomalyList) {
+            srcAnomalyListId = srcAnomalyList.id
+        } else {
+            const { data: newSrcList } = await supabase
+                .from('lists')
+                .insert({
+                    board_id: srcBoard.id,
+                    title: '通報事件',
+                    order: 0.5,
+                    list_type: 'anomaly',
+                    is_global: false,
+                })
+                .select('id')
+                .single()
+            if (newSrcList) srcAnomalyListId = newSrcList.id
+        }
+
+        if (srcAnomalyListId) {
+            // Get target department names for reference
+            const { data: targetDepts } = await supabase
+                .from('departments')
+                .select('name')
+                .in('id', targetDeptIds)
+            const targetNames = targetDepts?.map(d => d.name).join('、') || ''
+
+            const { data: srcMaxOrder } = await supabase
+                .from('cards')
+                .select('order')
+                .eq('list_id', srcAnomalyListId)
+                .order('order', { ascending: false })
+                .limit(1)
+                .single()
+            const srcOrder = srcMaxOrder ? srcMaxOrder.order + 65536 : 65536
+
+            // Build sent description: prepend target info to original description
+            const sentNote = `📤 已通報至：${targetNames}`
+            const sentDescription = description
+                ? `${sentNote}\n\n${description}`
+                : sentNote
+
+            await supabase.from('cards').insert({
+                list_id: srcAnomalyListId,
+                title,
+                description: sentDescription,
+                order: srcOrder,
+                card_type: 'anomaly',
+                source_department_id: currentDeptId,
+                status: 'sent',
+                created_by: user.id,
+            })
+        }
+    }
+
+    // 7. Revalidate UI for all targeted departments + source department
     for (const deptId of targetDeptIds) {
         revalidatePath(`/department/${deptId}`, 'page')
     }
+    revalidatePath(`/department/${currentDeptId}`, 'page')
     revalidatePath('/', 'layout')
 
     return { success: true }
@@ -189,5 +261,55 @@ export async function deleteCard(cardId: string) {
         .eq('id', cardId)
 
     if (error) return { error: `刪除失敗：${error.message}` }
+    return { success: true }
+}
+/**
+ * Mark a card as read by a specific department
+ */
+export async function markCardAsRead(cardId: string, departmentId: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: '尚未登入' }
+
+    const { error } = await supabase
+        .from('card_reads')
+        .upsert({
+            card_id: cardId,
+            department_id: departmentId,
+            user_id: user.id
+        }, { onConflict: 'card_id, department_id' })
+
+    if (error) {
+        console.error('Error marking card as read:', error)
+        return { error: '記錄已讀失敗' }
+    }
+
+    return { success: true }
+}
+
+/**
+ * Mark multiple cards as read by a specific department
+ */
+export async function markCardsAsRead(cardIds: string[], departmentId: string) {
+    if (!cardIds.length) return { success: true }
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: '尚未登入' }
+
+    const records = cardIds.map(id => ({
+        card_id: id,
+        department_id: departmentId,
+        user_id: user.id
+    }))
+
+    const { error } = await supabase
+        .from('card_reads')
+        .upsert(records, { onConflict: 'card_id, department_id' })
+
+    if (error) {
+        console.error('Error marking cards as read:', error)
+        return { error: '記錄已讀失敗' }
+    }
+
     return { success: true }
 }

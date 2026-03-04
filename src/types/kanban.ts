@@ -73,6 +73,11 @@ export type Card = {
         id: string
         name: string
     } | null
+    read_receipts?: {
+        department_id: string
+        read_at: string
+        user?: { full_name: string | null }
+    }[]
 }
 
 export type CardAssignee = {

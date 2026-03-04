@@ -25,6 +25,7 @@ import KanbanCard from './KanbanCard'
 import { createClient } from '@/lib/supabase/client'
 import { useLocaleStore } from '@/store/useLocaleStore'
 import { dictionaries } from '@/lib/i18n/dictionaries'
+import { markCardsAsRead } from '@/app/actions/cards'
 
 interface KanbanBoardProps {
     initialLists: ListWithCards[]
@@ -73,7 +74,17 @@ export default function KanbanBoard({ initialLists, userProfile, boardId, depart
 
     useEffect(() => {
         setIsMounted(true)
-    }, [])
+
+        // Auto-mark cards as read
+        const unreadCardIds = initialLists.flatMap(list => list.cards)
+            .filter(c => c.card_type === 'anomaly' && c.source_department_id !== departmentId)
+            .filter(c => !c.read_receipts?.some(r => r.department_id === departmentId))
+            .map(c => c.id)
+
+        if (unreadCardIds.length > 0) {
+            markCardsAsRead(unreadCardIds, departmentId).catch(console.error)
+        }
+    }, [initialLists, departmentId])
 
     // Keep ownBoardListIdsRef populated with the lists that belong to this specific board
     useEffect(() => {

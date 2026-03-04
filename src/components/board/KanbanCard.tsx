@@ -146,18 +146,37 @@ export default function KanbanCard({ card, isGlobalList, userProfile, isOverlay,
                 )}
 
                 {/* Anomaly Type Badge */}
-                {isAnomaly && (
+                {isAnomaly && card.status !== 'sent' && (
                     <div className="flex items-center gap-1 text-xs font-semibold text-red-600 mb-2 bg-red-50 w-fit px-2 py-0.5 rounded border border-red-100">
                         <AlertCircle size={12} />
                         {dict.report_anomaly || '通報事件'}
                     </div>
                 )}
 
+                {/* Sent Anomaly Badge & Read Receipts */}
+                {isAnomaly && card.status === 'sent' && (
+                    <div className="flex flex-col gap-1 mb-2">
+                        <div className="flex items-center gap-1 text-xs font-semibold text-blue-600 bg-blue-50 w-fit px-2 py-0.5 rounded border border-blue-100">
+                            <span className="text-[10px]">📤</span>
+                            已發出通報
+                        </div>
+                        {card.read_receipts && card.read_receipts.length > 0 && (
+                            <div
+                                className="flex items-center gap-1 text-[11px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 cursor-help"
+                                title={`已讀單位：\n${card.read_receipts.map(r => r.user?.full_name ? `${r.user.full_name}` : '未知人員').join('\n')}`}
+                            >
+                                <span className="text-[10px]">✓</span>
+                                被 {card.read_receipts.length} 個單位已讀
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 {/* Anomaly Source Badge */}
-                {isAnomaly && sourceDeptName && (
+                {isAnomaly && card.status !== 'sent' && sourceDeptName && (
                     <div className="flex items-center gap-1 text-xs font-semibold text-red-600 mb-2 bg-red-50 w-fit px-2 py-0.5 rounded border border-red-100">
                         <AlertCircle size={12} />
-                        Source: {sourceDeptName}
+                        來自: {sourceDeptName}
                     </div>
                 )}
 
