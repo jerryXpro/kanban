@@ -65,9 +65,24 @@ export async function getBoardData(boardId: string): Promise<BoardWithDetails | 
         }
     }
 
-    // Combine: shared lists first (prepended), then own lists
-    const allLists = [...sharedLists, ...ownLists]
+    // Combine and sort: shared global lists → own global lists → anomaly lists → regular lists
+    const allListsUnsorted = [...sharedLists, ...ownLists]
     const sharedListIds = new Set(sharedLists.map((l: any) => l.id))
+
+    // Priority sort: lower number = earlier position
+    const getListPriority = (list: any) => {
+        if (sharedListIds.has(list.id) && list.is_global) return 0  // inherited global (公佈欄)
+        if (list.is_global) return 1                                 // own global (公佈欄)
+        if (list.list_type === 'anomaly') return 2                   // anomaly (通報事件)
+        return 3                                                      // regular lists
+    }
+
+    const allLists = allListsUnsorted.sort((a: any, b: any) => {
+        const priorityA = getListPriority(a)
+        const priorityB = getListPriority(b)
+        if (priorityA !== priorityB) return priorityA - priorityB
+        return a.order - b.order  // within same priority, sort by order
+    })
 
     // 4. Fetch all Cards that belong to the combined lists
     const listIds = allLists.map((l: any) => l.id)

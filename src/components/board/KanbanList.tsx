@@ -16,11 +16,12 @@ interface KanbanListProps {
     cards: Card[]
     userProfile?: Profile
     isOverlay?: boolean
+    boardId?: string
     departments?: { id: string, name: string }[]
     systemUsers?: { id: string, full_name: string | null, role: string }[]
 }
 
-export default function KanbanList({ list, cards, userProfile, isOverlay, departments = [], systemUsers = [] }: KanbanListProps) {
+export default function KanbanList({ list, cards, userProfile, isOverlay, boardId, departments = [], systemUsers = [] }: KanbanListProps) {
     const { setNodeRef, attributes, listeners, transform, transition, isDragging } =
         useSortable({
             id: list.id,
@@ -204,7 +205,7 @@ export default function KanbanList({ list, cards, userProfile, isOverlay, depart
             </div>
 
             {/* List Footer (Add Card) */}
-            {!isAnomalyList && (!list.is_global || userProfile?.can_manage_global_messages) && (
+            {!isAnomalyList && (!list.is_global ? true : (list.board_id === boardId && userProfile?.can_manage_global_messages)) && (
                 <div className="p-2 pt-0">
                     {isAddingCard ? (
                         <div className="mt-2 flex flex-col gap-2">

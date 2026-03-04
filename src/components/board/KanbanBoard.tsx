@@ -425,7 +425,7 @@ export default function KanbanBoard({ initialLists, userProfile, boardId, depart
             <div className="flex w-full gap-6 overflow-x-auto pb-8 snap-x snap-mandatory px-4 md:px-8 scrollbar-hide">
                 <SortableContext items={lists.map((l) => l.id)} strategy={horizontalListSortingStrategy}>
                     {lists.map((list) => (
-                        <KanbanList key={list.id} list={list} cards={list.cards} userProfile={userProfile} departments={departments} systemUsers={systemUsers} />
+                        <KanbanList key={list.id} list={list} cards={list.cards} userProfile={userProfile} boardId={boardId} departments={departments} systemUsers={systemUsers} />
                     ))}
                 </SortableContext>
 
