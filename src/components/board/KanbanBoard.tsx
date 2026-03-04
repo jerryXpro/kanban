@@ -250,8 +250,8 @@ export default function KanbanBoard({ initialLists, userProfile, boardId, depart
                 const activeIndex = currentLists.findIndex(l => l.id === activeList.id)
                 const overIndex = currentLists.findIndex(l => l.id === overList.id)
 
-                // Prevent dragging in or out of global lists
-                if (activeList.is_global || overList.is_global) return currentLists
+                // Prevent dragging in or out of global or anomaly lists
+                if (activeList.is_global || overList.is_global || activeList.list_type === 'anomaly' || overList.list_type === 'anomaly') return currentLists
 
                 const activeCardIndex = activeList.cards.findIndex((c) => c.id === activeId)
                 const overCardIndex = overList.cards.findIndex((c) => c.id === overId)
@@ -281,8 +281,8 @@ export default function KanbanBoard({ initialLists, userProfile, boardId, depart
                 const activeIndex = currentLists.findIndex(l => l.id === activeList.id)
                 const overList = currentLists[overIndex]
 
-                // Prevent dragging in or out of global lists
-                if (activeList.is_global || overList.is_global) return currentLists
+                // Prevent dragging in or out of global or anomaly lists
+                if (activeList.is_global || overList.is_global || activeList.list_type === 'anomaly' || overList.list_type === 'anomaly') return currentLists
 
                 const newLists = [...currentLists]
                 const activeCardIndex = newLists[activeIndex].cards.findIndex((c) => c.id === activeId)
@@ -330,8 +330,8 @@ export default function KanbanBoard({ initialLists, userProfile, boardId, depart
 
             if (activeListIndex === -1 || overListIndex === -1) return
 
-            // Prevent dragging global list or moving things before global list
-            if (currentLists[activeListIndex]?.is_global || (overListIndex === 0 && currentLists[0]?.is_global)) return
+            // Prevent dragging global/anomaly list or moving things before them
+            if (currentLists[activeListIndex]?.is_global || currentLists[activeListIndex]?.list_type === 'anomaly' || (overListIndex === 0 && currentLists[0]?.is_global)) return
 
             const reorderedLists = arrayMove(currentLists, activeListIndex, overListIndex)
             const newOrder = calculateNewOrder(reorderedLists, overListIndex)
@@ -352,7 +352,7 @@ export default function KanbanBoard({ initialLists, userProfile, boardId, depart
             setLists((currentLists) => {
                 // Find where the card ended up (from handleDragOver optimistic updates)
                 const listWithCard = findListByCardId(activeId, currentLists)
-                if (!listWithCard || listWithCard.is_global) return currentLists
+                if (!listWithCard || listWithCard.is_global || listWithCard.list_type === 'anomaly') return currentLists
 
                 const cardIndex = listWithCard.cards.findIndex(c => c.id === activeId)
                 targetListId = listWithCard.id

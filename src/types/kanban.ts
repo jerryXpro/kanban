@@ -39,6 +39,7 @@ export type List = {
     is_global: boolean
     target_department_id: string | null
     color?: string | null
+    list_type?: string | null
 }
 
 export type Card = {

@@ -28,42 +28,54 @@ export async function reportAnomaly(currentDeptId: string, targetDeptIds: string
 
     const boardIds = boardsData.map(b => b.id)
 
-    // 3. Find first list for each board
-    // Supabase RPC or complex join might be better, but typically each board has few lists.
-    // For simplicity, we fetch all lists for these boards and pick the one with lowest order per board.
-    const { data: listsData, error: listsError } = await supabase
+    // 3. Find or create the dedicated anomaly list for each board
+    // First, check which boards already have an anomaly list
+    const { data: existingAnomalyLists } = await supabase
         .from('lists')
-        .select('id, board_id, order')
+        .select('id, board_id')
         .in('board_id', boardIds)
+        .eq('list_type', 'anomaly')
 
-    if (listsError || !listsData || listsData.length === 0) {
-        const errMsg = listsError?.message || 'No lists found'
-        return { error: `目標看板沒有任何清單，無法建立事件卡片。(${errMsg})` }
-    }
-
-    // Group lists by board_id and find the minimum order list for each
-    const firstListPerBoard = new Map<string, string>() // board_id -> list_id
-    for (const list of listsData) {
-        if (!firstListPerBoard.has(list.board_id)) {
-            firstListPerBoard.set(list.board_id, list.id)
-        } else {
-            // Compare order and keep the smaller one
-            const currentMinListId = firstListPerBoard.get(list.board_id)!
-            const currentMinList = listsData.find(l => l.id === currentMinListId)
-            if (currentMinList && list.order < currentMinList.order) {
-                firstListPerBoard.set(list.board_id, list.id)
-            }
+    const anomalyListPerBoard = new Map<string, string>() // board_id -> list_id
+    if (existingAnomalyLists) {
+        for (const list of existingAnomalyLists) {
+            anomalyListPerBoard.set(list.board_id, list.id)
         }
     }
 
-    const targetListIds = Array.from(firstListPerBoard.values())
+    // Create anomaly lists for boards that don't have one yet
+    const boardsNeedingList = boardIds.filter(bid => !anomalyListPerBoard.has(bid))
+    if (boardsNeedingList.length > 0) {
+        const newLists = boardsNeedingList.map(boardId => ({
+            board_id: boardId,
+            title: '通報事件',
+            order: 0.5, // After global announcement (order ~0) but before regular lists (order >= 65536)
+            list_type: 'anomaly',
+            is_global: false,
+        }))
+
+        const { data: createdLists, error: createError } = await supabase
+            .from('lists')
+            .insert(newLists)
+            .select('id, board_id')
+
+        if (createError || !createdLists) {
+            return { error: `無法建立通報事件列表：${createError?.message || 'Unknown error'}` }
+        }
+
+        for (const list of createdLists) {
+            anomalyListPerBoard.set(list.board_id, list.id)
+        }
+    }
+
+    const targetListIds = Array.from(anomalyListPerBoard.values())
 
     if (targetListIds.length === 0) {
         return { error: `無法找到合適的清單來插入卡片。` }
     }
 
     // 4. Batch determine new order (Fetch max order for each target list)
-    const { data: maxOrdersData, error: maxOrdersError } = await supabase
+    const { data: maxOrdersData } = await supabase
         .from('cards')
         .select('list_id, order')
         .in('list_id', targetListIds)

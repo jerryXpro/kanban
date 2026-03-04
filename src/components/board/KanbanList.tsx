@@ -4,7 +4,7 @@ import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-
 import { CSS } from '@dnd-kit/utilities'
 import { ListWithCards, Card, Profile } from '@/types/kanban'
 import KanbanCard from './KanbanCard'
-import { Plus, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
+import { Plus, MoreHorizontal, Pencil, Trash2, AlertTriangle } from 'lucide-react'
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useLocaleStore } from '@/store/useLocaleStore'
@@ -88,7 +88,8 @@ export default function KanbanList({ list, cards, userProfile, isOverlay, depart
         transform: CSS.Translate.toString(transform),
     }
 
-    const listBgStyle = list.is_global ? {} : { backgroundColor: list.color || '#f1f5f9' }
+    const isAnomalyList = list.list_type === 'anomaly'
+    const listBgStyle = (list.is_global || isAnomalyList) ? {} : { backgroundColor: list.color || '#f1f5f9' }
 
     if (isDragging) {
         return (
@@ -107,16 +108,20 @@ export default function KanbanList({ list, cards, userProfile, isOverlay, depart
             className={`w-[300px] shrink-0 h-full max-h-[85vh] flex flex-col rounded-xl shadow-sm snap-center transition-all ${isOverlay ? 'shadow-2xl cursor-grabbing' : ''
                 } ${list.is_global
                     ? 'bg-amber-50/90 border border-amber-200 backdrop-blur-md'
-                    : 'border border-slate-200/50'
+                    : isAnomalyList
+                        ? 'bg-red-50/90 border border-red-200 backdrop-blur-md'
+                        : 'border border-slate-200/50'
                 }`}
         >
             {/* List Header (Drag Handle for the List) */}
             <div
-                {...(!list.is_global && !isEditing ? attributes : {})}
-                {...(!list.is_global && !isEditing ? listeners : {})}
+                {...(!list.is_global && !isAnomalyList && !isEditing ? attributes : {})}
+                {...(!list.is_global && !isAnomalyList && !isEditing ? listeners : {})}
                 className={`group p-3 font-semibold flex justify-between items-center border-b ${list.is_global
                     ? 'text-amber-900 border-amber-200/50'
-                    : isEditing ? 'border-indigo-200 bg-white/50 rounded-t-xl' : 'text-slate-700 border-slate-200/50 cursor-grab active:cursor-grabbing'
+                    : isAnomalyList
+                        ? 'text-red-900 border-red-200/50'
+                        : isEditing ? 'border-indigo-200 bg-white/50 rounded-t-xl' : 'text-slate-700 border-slate-200/50 cursor-grab active:cursor-grabbing'
                     }`}
             >
                 <div className="flex items-center gap-2 overflow-hidden flex-1">
@@ -146,18 +151,21 @@ export default function KanbanList({ list, cards, userProfile, isOverlay, depart
                             </div>
                         </div>
                     ) : (
-                        <span className="truncate">{list.title}</span>
+                        <span className="flex items-center gap-1.5 truncate">
+                            {isAnomalyList && <AlertTriangle size={16} className="shrink-0 text-red-500" />}
+                            {list.title}
+                        </span>
                     )}
 
                     {!isEditing && (
-                        <span className={`shrink-0 text-xs font-normal px-2 py-0.5 rounded-full ${list.is_global ? 'text-amber-700 bg-amber-200/50' : 'text-slate-500 bg-slate-200'
+                        <span className={`shrink-0 text-xs font-normal px-2 py-0.5 rounded-full ${list.is_global ? 'text-amber-700 bg-amber-200/50' : isAnomalyList ? 'text-red-700 bg-red-200/50' : 'text-slate-500 bg-slate-200'
                             }`}>
                             {cards.length}
                         </span>
                     )}
                 </div>
 
-                {!list.is_global && (
+                {!list.is_global && !isAnomalyList && (
                     isEditing ? (
                         <div className="flex gap-1 shrink-0 ml-2">
                             <button onPointerDown={(e) => e.stopPropagation()} onClick={() => handleSaveList()} className="text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 px-2 py-1 rounded">{dict.save}</button>
@@ -196,7 +204,7 @@ export default function KanbanList({ list, cards, userProfile, isOverlay, depart
             </div>
 
             {/* List Footer (Add Card) */}
-            {(!list.is_global || userProfile?.can_manage_global_messages) && (
+            {!isAnomalyList && (!list.is_global || userProfile?.can_manage_global_messages) && (
                 <div className="p-2 pt-0">
                     {isAddingCard ? (
                         <div className="mt-2 flex flex-col gap-2">

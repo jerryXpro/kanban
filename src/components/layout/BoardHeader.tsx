@@ -72,11 +72,6 @@ export default function BoardHeader({ departmentId, departmentName, managerName,
                                     ⚙️ 系統設定
                                 </Button>
                             </Link>
-                            <Link href="/admin/users">
-                                <Button variant="outline" size="sm" className="h-6 text-xs text-indigo-900 px-2 bg-amber-200 hover:bg-amber-300 border-none">
-                                    <I18nText ns="header" textKey="upgrade_manager" />
-                                </Button>
-                            </Link>
                         </div>
                     )}
                     <span>{userEmail}</span>
