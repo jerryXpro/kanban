@@ -29,9 +29,15 @@ export async function GET(request: NextRequest) {
         const calendar = google.calendar({ version: 'v3', auth })
 
         const now = new Date()
+        const timeMinQuery = searchParams.get('timeMin')
+        const timeMaxQuery = searchParams.get('timeMax')
+
+        let timeMin: Date = timeMinQuery ? new Date(timeMinQuery) : now
         let timeMax: Date
 
-        if (viewMode === 'month') {
+        if (timeMaxQuery) {
+            timeMax = new Date(timeMaxQuery)
+        } else if (viewMode === 'month') {
             // End of current month
             timeMax = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59)
         } else {
@@ -41,11 +47,11 @@ export async function GET(request: NextRequest) {
 
         const response = await calendar.events.list({
             calendarId: calendarId,
-            timeMin: now.toISOString(),
+            timeMin: timeMin.toISOString(),
             timeMax: timeMax.toISOString(),
             singleEvents: true,
             orderBy: 'startTime',
-            maxResults: 50,
+            maxResults: 150,
         })
 
         const events = (response.data.items || []).map(event => ({

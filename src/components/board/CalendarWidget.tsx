@@ -83,7 +83,29 @@ export default function CalendarWidget({ calendarId }: CalendarWidgetProps) {
         setIsLoading(true)
         setError(null)
         try {
-            const params = new URLSearchParams({ view: viewMode })
+            // Calculate date range based on current state to pass to API
+            const today = new Date()
+            today.setHours(0, 0, 0, 0)
+            let startOfRange: Date
+            let endOfRange: Date
+
+            if (viewMode === 'twoWeeks') {
+                startOfRange = new Date(today)
+                startOfRange.setDate(today.getDate() + offsetWeeks * 14)
+                endOfRange = new Date(startOfRange)
+                endOfRange.setDate(startOfRange.getDate() + 13)
+            } else {
+                startOfRange = new Date(today.getFullYear(), today.getMonth() + offsetMonths, 1)
+                endOfRange = new Date(startOfRange.getFullYear(), startOfRange.getMonth() + 1, 0)
+            }
+            startOfRange.setHours(0, 0, 0, 0)
+            endOfRange.setHours(23, 59, 59, 999)
+
+            const params = new URLSearchParams({
+                view: viewMode,
+                timeMin: startOfRange.toISOString(),
+                timeMax: endOfRange.toISOString()
+            })
             if (calendarId) params.set('calendarId', calendarId)
             const res = await fetch(`/api/calendar?${params.toString()}`)
             const data = await res.json()
@@ -98,7 +120,7 @@ export default function CalendarWidget({ calendarId }: CalendarWidgetProps) {
         } finally {
             setIsLoading(false)
         }
-    }, [viewMode, calendarId])
+    }, [viewMode, calendarId, offsetWeeks, offsetMonths])
 
     useEffect(() => {
         fetchEvents()
