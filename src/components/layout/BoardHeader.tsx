@@ -12,6 +12,8 @@ import { createDefaultLists } from '@/app/actions/department'
 import AnomalyReportDialog from '@/components/board/AnomalyReportDialog'
 import ThemeSelector from '@/components/board/ThemeSelector'
 import EventManager from '@/components/board/EventManager'
+import { useLocaleStore } from '@/store/useLocaleStore'
+import { dictionaries } from '@/lib/i18n/dictionaries'
 
 interface BoardHeaderProps {
     departmentId: string
@@ -81,17 +83,17 @@ export default function BoardHeader({ departmentId, departmentName, managerName,
                     <button
                         onClick={() => setIsEventDrawerOpen(true)}
                         className="flex items-center gap-1.5 text-white/80 hover:text-white hover:bg-white/15 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors"
-                        title="排程提醒事件"
+                        title={dict.event_scheduler_title || "排程提醒事件"}
                     >
                         <CalendarClock size={15} className="text-amber-300" />
-                        <span className="hidden sm:inline">排程提醒</span>
+                        <span className="hidden sm:inline">{dict.event_scheduler_btn || "排程提醒"}</span>
                     </button>
                 )}
 
                 {isManager && boardId && (
                     <button
                         onClick={async () => {
-                            if (!confirm('確定要建立預設列表（待辦事項、進行事項、完成事項）？')) return
+                            if (!confirm(dict.default_lists_confirm || '確定要建立預設列表（待辦事項、進行事項、完成事項）？')) return
                             const res = await createDefaultLists(boardId, departmentId)
                             if (res.error) {
                                 alert(res.error)
@@ -100,10 +102,10 @@ export default function BoardHeader({ departmentId, departmentName, managerName,
                             }
                         }}
                         className="flex items-center gap-1.5 text-white/80 hover:text-white hover:bg-white/15 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors"
-                        title="一鍵建立預設列表"
+                        title={dict.default_lists_create_btn || "一鍵建立預設列表"}
                     >
                         <ListPlus size={15} className="text-emerald-300" />
-                        <span className="hidden sm:inline">預設列表</span>
+                        <span className="hidden sm:inline">{dict.default_lists_btn || "預設列表"}</span>
                     </button>
                 )}
 

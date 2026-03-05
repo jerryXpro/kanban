@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { ChevronLeft, ChevronRight, Calendar, RefreshCw, AlertCircle, Settings } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { useLocaleStore } from '@/store/useLocaleStore'
+import { dictionaries } from '@/lib/i18n/dictionaries'
 
 interface CalendarEvent {
     id: string
@@ -119,6 +120,9 @@ export default function CalendarWidget({ calendarId, themeColor }: CalendarWidge
     const [offsetWeeks, setOffsetWeeks] = useState(0) // for two-week view navigation
     const [offsetMonths, setOffsetMonths] = useState(0) // for month view navigation
 
+    const { locale } = useLocaleStore()
+    const dict = dictionaries[locale].board
+
     const fetchEvents = useCallback(async () => {
         setIsLoading(true)
         setError(null)
@@ -150,7 +154,7 @@ export default function CalendarWidget({ calendarId, themeColor }: CalendarWidge
             const res = await fetch(`/api/calendar?${params.toString()}`)
             const data = await res.json()
             if (!res.ok) {
-                setError(data.error || '無法載入行事曆')
+                setError(data.error || (dict.cal_error ? dict.cal_error.replace('{0}', '') : '無法載入行事曆'))
             } else {
                 setEvents(data.events || [])
                 setIsConfigured(data.configured)
@@ -187,7 +191,12 @@ export default function CalendarWidget({ calendarId, themeColor }: CalendarWidge
         const targetDate = new Date(today.getFullYear(), today.getMonth() + offsetMonths, 1)
         const lastDay = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0)
         days = getDaysInRange(targetDate, lastDay)
-        rangeLabel = `${targetDate.getFullYear()}年 ${MONTHS_ZH[targetDate.getMonth()]}`
+
+        // Use Western month numbers if not zh-TW
+        const monthName = locale === 'zh-TW' ? MONTHS_ZH[targetDate.getMonth()] : (targetDate.getMonth() + 1).toString()
+        rangeLabel = locale === 'zh-TW'
+            ? `${targetDate.getFullYear()}年 ${monthName}`
+            : `${monthName}/${targetDate.getFullYear()}`
     }
 
     const handlePrev = () => {
@@ -216,7 +225,7 @@ export default function CalendarWidget({ calendarId, themeColor }: CalendarWidge
             {/* Header Bar */}
             <div className="flex items-center gap-2 px-4 py-2 border-b border-white/10">
                 <Calendar className="h-4 w-4 opacity-70" />
-                <span className="text-sm font-semibold opacity-90 flex-1">Google 行事曆</span>
+                <span className="text-sm font-semibold opacity-90 flex-1">{dict.cal_title || 'Google 行事曆'}</span>
 
                 {/* View Mode Toggle */}
                 <div className="flex items-center bg-white/10 rounded-md overflow-hidden border border-white/20">
@@ -224,13 +233,13 @@ export default function CalendarWidget({ calendarId, themeColor }: CalendarWidge
                         onClick={() => { setViewMode('twoWeeks'); setOffsetWeeks(0) }}
                         className={`px-3 py-1 text-xs font-medium transition-colors ${viewMode === 'twoWeeks' ? 'bg-white/20 text-white' : 'text-white/60 hover:text-white hover:bg-white/10'}`}
                     >
-                        雙週
+                        {dict.cal_two_weeks || '雙週'}
                     </button>
                     <button
                         onClick={() => { setViewMode('month'); setOffsetMonths(0) }}
                         className={`px-3 py-1 text-xs font-medium transition-colors ${viewMode === 'month' ? 'bg-white/20 text-white' : 'text-white/60 hover:text-white hover:bg-white/10'}`}
                     >
-                        月
+                        {dict.cal_month || '月'}
                     </button>
                 </div>
 
@@ -239,42 +248,42 @@ export default function CalendarWidget({ calendarId, themeColor }: CalendarWidge
                     <button
                         onClick={() => setTextSize('sm')}
                         className={`px-2 py-1 text-[10px] font-medium transition-colors ${textSize === 'sm' ? 'bg-white/20 text-white' : 'text-white/60 hover:text-white hover:bg-white/10'}`}
-                        title="小字體"
+                        title={dict.cal_size_sm || '小'}
                     >
-                        小
+                        {dict.cal_size_sm || '小'}
                     </button>
                     <button
                         onClick={() => setTextSize('md')}
                         className={`px-2 py-1 text-xs font-medium transition-colors ${textSize === 'md' ? 'bg-white/20 text-white' : 'text-white/60 hover:text-white hover:bg-white/10'}`}
-                        title="中字體"
+                        title={dict.cal_size_md || '中'}
                     >
-                        中
+                        {dict.cal_size_md || '中'}
                     </button>
                     <button
                         onClick={() => setTextSize('lg')}
                         className={`px-2 py-1 text-sm font-medium transition-colors ${textSize === 'lg' ? 'bg-white/20 text-white' : 'text-white/60 hover:text-white hover:bg-white/10'}`}
-                        title="大字體"
+                        title={dict.cal_size_lg || '大'}
                     >
-                        大
+                        {dict.cal_size_lg || '大'}
                     </button>
                 </div>
 
                 {/* Navigation */}
                 <div className="flex items-center gap-1">
-                    <button onClick={handlePrev} className="p-1 rounded hover:bg-white/10 transition-colors" title="上一期">
+                    <button onClick={handlePrev} className="p-1 rounded hover:bg-white/10 transition-colors" title={dict.cal_prev || '上一期'}>
                         <ChevronLeft className="h-4 w-4" />
                     </button>
                     <span className="text-xs font-medium min-w-[100px] text-center opacity-90">{rangeLabel}</span>
-                    <button onClick={handleNext} className="p-1 rounded hover:bg-white/10 transition-colors" title="下一期">
+                    <button onClick={handleNext} className="p-1 rounded hover:bg-white/10 transition-colors" title={dict.cal_next || '下一期'}>
                         <ChevronRight className="h-4 w-4" />
                     </button>
                 </div>
 
                 <button onClick={handleToday} className="text-xs px-2 py-1 rounded hover:bg-white/10 transition-colors opacity-70 hover:opacity-100">
-                    今天
+                    {dict.cal_today || '今天'}
                 </button>
 
-                <button onClick={fetchEvents} disabled={isLoading} className="p-1 rounded hover:bg-white/10 transition-colors opacity-70 hover:opacity-100" title="重新整理">
+                <button onClick={fetchEvents} disabled={isLoading} className="p-1 rounded hover:bg-white/10 transition-colors opacity-70 hover:opacity-100" title={dict.cal_refresh || '重新整理'}>
                     <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} />
                 </button>
 
@@ -294,12 +303,12 @@ export default function CalendarWidget({ calendarId, themeColor }: CalendarWidge
                     {error && !isLoading ? (
                         <div className="flex items-center gap-2 px-4 py-3 text-red-300 text-xs">
                             <AlertCircle className="h-4 w-4 shrink-0" />
-                            <span>載入失敗：{error}</span>
+                            <span>{dict.cal_error ? dict.cal_error.replace('{0}', error) : `載入失敗：${error}`}</span>
                         </div>
                     ) : !isConfigured && !isLoading ? (
                         <div className="flex items-center gap-2 px-4 py-3 text-white/60 text-xs">
                             <AlertCircle className="h-4 w-4 shrink-0" />
-                            <span>尚未設定 Google 行事曆。請在 Vercel / .env.local 加入 <code className="bg-white/10 px-1 rounded">GOOGLE_SERVICE_ACCOUNT_KEY</code> 與 <code className="bg-white/10 px-1 rounded">GOOGLE_CALENDAR_ID</code>。</span>
+                            <span>{dict.cal_not_configured || '尚未設定 Google 行事曆。'} <code className="bg-white/10 px-1 rounded">GOOGLE_SERVICE_ACCOUNT_KEY</code> / <code className="bg-white/10 px-1 rounded">GOOGLE_CALENDAR_ID</code></span>
                         </div>
                     ) : (
                         <div className="min-w-[700px]">
@@ -360,7 +369,7 @@ export default function CalendarWidget({ calendarId, themeColor }: CalendarWidge
                                                                             {!event.isAllDay && (
                                                                                 <p className="opacity-70 text-xs">{formatTime(event.start)} – {formatTime(event.end)}</p>
                                                                             )}
-                                                                            {event.isAllDay && <p className="opacity-70 text-xs">全天</p>}
+                                                                            {event.isAllDay && <p className="opacity-70 text-xs">{dict.cal_all_day || '全天'}</p>}
                                                                             {event.location && <p className="opacity-70 mt-1 text-xs">📍 {event.location}</p>}
                                                                             {event.description && <p className="opacity-60 mt-1 line-clamp-3 text-xs">{event.description}</p>}
                                                                         </TooltipContent>
@@ -368,7 +377,7 @@ export default function CalendarWidget({ calendarId, themeColor }: CalendarWidge
                                                                 ))}
                                                             </TooltipProvider>
                                                             {dayEvents.length > 2 && (
-                                                                <div className={`opacity-60 px-1 ${textSizeClass}`}>+{dayEvents.length - 2} 更多</div>
+                                                                <div className={`opacity-60 px-1 ${textSizeClass}`}>{(dict.cal_more || '+{0} 更多').replace('{0}', (dayEvents.length - 2).toString())}</div>
                                                             )}
                                                         </>
                                                     )}

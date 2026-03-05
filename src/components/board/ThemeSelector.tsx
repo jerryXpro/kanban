@@ -11,6 +11,8 @@ import {
 import { updateBoardTheme } from '@/app/actions/boards'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
+import { useLocaleStore } from '@/store/useLocaleStore'
+import { dictionaries } from '@/lib/i18n/dictionaries'
 
 const AVAILABLE_COLORS = [
     { name: 'Indigo', value: '#4F46E5' },
@@ -33,6 +35,9 @@ export default function ThemeSelector({ boardId, departmentId, currentThemeColor
     const [isUpdating, setIsUpdating] = useState(false)
     const [open, setOpen] = useState(false)
 
+    const { locale } = useLocaleStore()
+    const dict = dictionaries[locale].board
+
     // Normalize color value for comparison (handle undefined or different cases)
     const normalizedCurrentColor = (currentThemeColor || '#4F46E5').toUpperCase()
 
@@ -48,12 +53,12 @@ export default function ThemeSelector({ boardId, departmentId, currentThemeColor
             if (res.error) {
                 toast.error(res.error)
             } else {
-                toast.success('看板顏色已更新')
+                toast.success(dict.theme_updated || '看板顏色已更新')
                 setOpen(false)
                 router.refresh()
             }
         } catch (error: any) {
-            toast.error("伺服器發生非預期錯誤：" + error.message)
+            toast.error((dict.theme_error ? dict.theme_error.replace('{0}', error.message) : `伺服器發生非預期錯誤：${error.message}`))
         } finally {
             setIsUpdating(false)
         }
@@ -66,14 +71,14 @@ export default function ThemeSelector({ boardId, departmentId, currentThemeColor
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 text-white hover:bg-white/20 hover:text-white transition-colors"
-                    title="設定看板顏色"
+                    title={dict.theme_title || "設定看板顏色"}
                     disabled={isUpdating}
                 >
                     <Palette className="h-4 w-4" />
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56 p-2">
-                <div className="text-xs font-semibold text-slate-500 mb-2 px-1">選擇看板顏色</div>
+                <div className="text-xs font-semibold text-slate-500 mb-2 px-1">{dict.theme_select || '選擇看板顏色'}</div>
                 <div className="grid grid-cols-4 gap-2">
                     {AVAILABLE_COLORS.map(color => {
                         const isSelected = color.value.toUpperCase() === normalizedCurrentColor

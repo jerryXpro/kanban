@@ -172,15 +172,15 @@ export default function KanbanCard({ card, isGlobalList, userProfile, isOverlay,
                     <div className="flex flex-col gap-1 mb-2">
                         <div className="flex items-center gap-1 text-xs font-semibold text-blue-600 bg-blue-50 w-fit px-2 py-0.5 rounded border border-blue-100">
                             <span className="text-[10px]">📤</span>
-                            已發出通報
+                            {dict.read_receipt_sent || '已發出通報'}
                         </div>
                         {card.read_receipts && card.read_receipts.length > 0 && (
                             <div
                                 className="flex items-center gap-1 text-[11px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 cursor-help"
-                                title={`已讀單位：\n${card.read_receipts.map(r => r.user?.full_name ? `${r.user.full_name}` : '未知人員').join('\n')}`}
+                                title={(dict.read_receipt_hover || '已讀單位：\n{0}').replace('{0}', card.read_receipts.map(r => r.user?.full_name ? `${r.user.full_name}` : (dict.author_system || '系統')).join('\n'))}
                             >
                                 <span className="text-[10px]">✓</span>
-                                被 {card.read_receipts.length} 個單位已讀
+                                {(dict.read_receipt_count || '被 {0} 個單位已讀').replace('{0}', card.read_receipts.length.toString())}
                             </div>
                         )}
                     </div>
@@ -190,7 +190,7 @@ export default function KanbanCard({ card, isGlobalList, userProfile, isOverlay,
                 {isAnomaly && card.status !== 'sent' && sourceDeptName && (
                     <div className="flex items-center gap-1 text-xs font-semibold text-red-600 mb-2 bg-red-50 w-fit px-2 py-0.5 rounded border border-red-100">
                         <AlertCircle size={12} />
-                        來自: {sourceDeptName}
+                        {(dict.source_dept ? dict.source_dept.replace('{0}', sourceDeptName) : `來自: ${sourceDeptName}`)}
                     </div>
                 )}
 
@@ -241,8 +241,8 @@ export default function KanbanCard({ card, isGlobalList, userProfile, isOverlay,
 
                 {/* Assignment Display */}
                 {assignmentText && (
-                    <div className="mt-2 text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-1 rounded w-fit self-start shadow-sm">
-                        🎯 負責：{assignmentText}
+                    <div className="mt-2 text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-1 rounded w-fit self-start shadow-sm flex items-center gap-1">
+                        {dict.assigned_to || '🎯 負責：'}{assignmentText}
                     </div>
                 )}
 
@@ -250,23 +250,23 @@ export default function KanbanCard({ card, isGlobalList, userProfile, isOverlay,
                 <div className="flex items-center justify-between mt-3 text-slate-400 border-t border-slate-100 pt-2">
                     <div className="flex flex-col gap-1">
                         {card.created_at && (
-                            <div className="flex items-center gap-1.5 text-slate-400 text-[11px]" title="發佈日期">
+                            <div className="flex items-center gap-1.5 text-slate-400 text-[11px]" title={dict.publish_date || "發佈日期"}>
                                 <span>🕒</span>
                                 <span>{new Date(card.created_at).toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}</span>
                             </div>
                         )}
                         {card.due_date && (
-                            <div className="flex items-center gap-1.5 text-slate-500 text-[11px]" title="到期日">
+                            <div className="flex items-center gap-1.5 text-slate-500 text-[11px]" title={dict.due_date || "到期日"}>
                                 <span>⏲</span>
                                 <span>{new Date(card.due_date).toLocaleDateString()}</span>
                             </div>
                         )}
                     </div>
 
-                    <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-0.5 rounded border border-slate-100 shadow-sm" title={card.author?.role || '發佈人員'}>
+                    <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-0.5 rounded border border-slate-100 shadow-sm" title={card.author?.role || dict.author_user || '發佈人員'}>
                         {/* <span>✍️</span> */}
                         <span className="text-xs font-medium text-slate-600">
-                            {card.author?.full_name || '系統'}
+                            {card.author?.full_name || dict.author_system || '系統'}
                         </span>
                     </div>
                 </div>
@@ -308,16 +308,16 @@ export default function KanbanCard({ card, isGlobalList, userProfile, isOverlay,
                         {/* Sidebar Options Area */}
                         <div className="w-full md:w-64 space-y-6 flex flex-col border-l pl-6">
                             <div className="space-y-4">
-                                <h3 className="text-sm font-semibold text-slate-800 border-b pb-2 mb-4">卡片指派</h3>
+                                <h3 className="text-sm font-semibold text-slate-800 border-b pb-2 mb-4">{dict.card_assignment || '卡片指派'}</h3>
 
                                 <div className="space-y-2">
-                                    <label className="text-xs font-medium text-slate-500">處理單位</label>
+                                    <label className="text-xs font-medium text-slate-500">{dict.assign_dept || '處理單位'}</label>
                                     <select
                                         value={editAssignedDeptId}
                                         onChange={(e) => setEditAssignedDeptId(e.target.value)}
                                         className="w-full p-2 text-sm rounded border border-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-400"
                                     >
-                                        <option value="none">-- 無指定單位 --</option>
+                                        <option value="none">{dict.no_assign_dept || '-- 無指定單位 --'}</option>
                                         {departments.map(d => (
                                             <option key={d.id} value={d.id}>{d.name}</option>
                                         ))}
@@ -325,13 +325,13 @@ export default function KanbanCard({ card, isGlobalList, userProfile, isOverlay,
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-xs font-medium text-slate-500">處理人員</label>
+                                    <label className="text-xs font-medium text-slate-500">{dict.assign_user || '處理人員'}</label>
                                     <select
                                         value={editAssignedUserId}
                                         onChange={(e) => setEditAssignedUserId(e.target.value)}
                                         className="w-full p-2 text-sm rounded border border-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-400"
                                     >
-                                        <option value="none">-- 無指定人員 --</option>
+                                        <option value="none">{dict.no_assign_user || '-- 無指定人員 --'}</option>
                                         {systemUsers.map(u => (
                                             <option key={u.id} value={u.id}>{u.full_name} {u.role ? `(${u.role})` : ''}</option>
                                         ))}

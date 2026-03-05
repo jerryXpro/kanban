@@ -19,32 +19,22 @@ import {
     type ScheduledEvent,
 } from '@/app/actions/scheduled-events'
 
+import { useLocaleStore } from '@/store/useLocaleStore'
+import { dictionaries } from '@/lib/i18n/dictionaries'
+
 interface EventManagerProps {
     departmentId: string
     isOpen: boolean
     onOpenChange: (open: boolean) => void
 }
-
-const RECURRENCE_LABELS: Record<string, string> = {
-    once: '一次性',
-    quarterly: '每季',
-    yearly: '每年',
-}
-
-const OFFSET_PRESETS = [
-    { label: '當天', days: 0 },
-    { label: '7 天後', days: 7 },
-    { label: '30 天後', days: 30 },
-    { label: '3 個月後', days: 90 },
-    { label: '6 個月後', days: 180 },
-    { label: '1 年後', days: 365 },
-]
-
-export default function EventManager({ departmentId, isOpen, onOpenChange }: EventManagerProps) {
+export function EventManager({ departmentId, isOpen, onOpenChange }: EventManagerProps) {
     const [events, setEvents] = useState<ScheduledEvent[]>([])
-    const [loading, setLoading] = useState(true)
+    const [loading, setLoading] = useState(false)
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [editingEvent, setEditingEvent] = useState<ScheduledEvent | null>(null)
+
+    const { locale } = useLocaleStore()
+    const dict = dictionaries[locale].board
 
     // Form state
     const [formTitle, setFormTitle] = useState('')
@@ -52,6 +42,21 @@ export default function EventManager({ departmentId, isOpen, onOpenChange }: Eve
     const [formEventDate, setFormEventDate] = useState('')
     const [formOffsetDays, setFormOffsetDays] = useState(0)
     const [formRecurrence, setFormRecurrence] = useState<'once' | 'quarterly' | 'yearly'>('once')
+
+    const RECURRENCE_LABELS: Record<string, string> = {
+        once: dict.recurrence_once || '一次性',
+        quarterly: dict.recurrence_quarterly || '每季',
+        yearly: dict.recurrence_yearly || '每年',
+    }
+
+    const OFFSET_PRESETS = [
+        { label: dict.offset_0 || '當天', days: 0 },
+        { label: dict.offset_7 || '7 天後', days: 7 },
+        { label: dict.offset_30 || '30 天後', days: 30 },
+        { label: dict.offset_90 || '3 個月後', days: 90 },
+        { label: dict.offset_180 || '6 個月後', days: 180 },
+        { label: dict.offset_365 || '1 年後', days: 365 },
+    ]
 
     const fetchEvents = useCallback(async () => {
         setLoading(true)
@@ -93,8 +98,8 @@ export default function EventManager({ departmentId, isOpen, onOpenChange }: Eve
     }
 
     const handleSave = async () => {
-        if (!formTitle.trim()) { toast.error('請輸入事件標題'); return }
-        if (!formEventDate) { toast.error('請選擇基準日期'); return }
+        if (!formTitle.trim()) { toast.error(dict.event_title_req || '請輸入事件標題'); return }
+        if (!formEventDate) { toast.error(dict.event_date_req || '請選擇基準日期'); return }
 
         if (editingEvent) {
             const res = await updateScheduledEvent(
@@ -102,22 +107,22 @@ export default function EventManager({ departmentId, isOpen, onOpenChange }: Eve
                 formEventDate, formOffsetDays, formRecurrence, editingEvent.is_active
             )
             if (res.error) toast.error(res.error)
-            else { toast.success('排程事件已更新'); setIsDialogOpen(false); fetchEvents() }
+            else { toast.success(dict.event_updated || '排程事件已更新'); setIsDialogOpen(false); fetchEvents() }
         } else {
             const res = await createScheduledEvent(
                 departmentId, formTitle, formDescription,
                 formEventDate, formOffsetDays, formRecurrence
             )
             if (res.error) toast.error(res.error)
-            else { toast.success('排程事件已建立'); setIsDialogOpen(false); fetchEvents() }
+            else { toast.success(dict.event_created || '排程事件已建立'); setIsDialogOpen(false); fetchEvents() }
         }
     }
 
     const handleDelete = async (event: ScheduledEvent) => {
-        if (!confirm(`確定要刪除「${event.title}」？`)) return
+        if (!confirm((dict.event_delete_confirm || `確定要刪除「{0}」？`).replace('{0}', event.title))) return
         const res = await deleteScheduledEvent(event.id, departmentId)
         if (res.error) toast.error(res.error)
-        else { toast.success('排程事件已刪除'); fetchEvents() }
+        else { toast.success(dict.event_deleted || '排程事件已刪除'); fetchEvents() }
     }
 
     const handleToggleActive = async (event: ScheduledEvent) => {
@@ -126,7 +131,7 @@ export default function EventManager({ departmentId, isOpen, onOpenChange }: Eve
             event.event_date, event.remind_offset_days, event.recurrence, !event.is_active
         )
         if (res.error) toast.error(res.error)
-        else { toast.success(event.is_active ? '排程已停用' : '排程已啟用'); fetchEvents() }
+        else { toast.success(event.is_active ? (dict.event_disabled || '排程已停用') : (dict.event_enabled || '排程已啟用')); fetchEvents() }
     }
 
     const computedRemindDate = formEventDate
@@ -150,9 +155,9 @@ export default function EventManager({ departmentId, isOpen, onOpenChange }: Eve
                         <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
                             <div className="flex items-center gap-2">
                                 <CalendarClock size={20} className="text-amber-400" />
-                                <h2 className="text-lg font-semibold text-white">排程提醒事件</h2>
+                                <h2 className="text-lg font-semibold text-white">{dict.event_scheduler_title || '排程提醒事件'}</h2>
                                 <span className="text-xs text-white/40 bg-white/10 px-2 py-0.5 rounded-full">
-                                    {activeEvents.length} 啟用中
+                                    {(dict.active_events || '{0} 啟用中').replace('{0}', activeEvents.length.toString())}
                                 </span>
                             </div>
                             <button
@@ -187,7 +192,7 @@ export default function EventManager({ departmentId, isOpen, onOpenChange }: Eve
                                         <div className="space-y-2">
                                             <div className="text-xs font-medium text-white/50 uppercase tracking-wider">啟用中</div>
                                             {activeEvents.map(event => (
-                                                <EventRow key={event.id} event={event} onEdit={openEditDialog} onDelete={handleDelete} onToggle={handleToggleActive} />
+                                                <EventRow key={event.id} event={event} recurrenceLabel={RECURRENCE_LABELS[event.recurrence as keyof typeof RECURRENCE_LABELS] || RECURRENCE_LABELS['once']} onEdit={openEditDialog} onDelete={handleDelete} onToggle={handleToggleActive} />
                                             ))}
                                         </div>
                                     )}
@@ -195,7 +200,7 @@ export default function EventManager({ departmentId, isOpen, onOpenChange }: Eve
                                         <div className="space-y-2 pt-3 border-t border-white/10">
                                             <div className="text-xs font-medium text-white/30 uppercase tracking-wider">已停用</div>
                                             {inactiveEvents.map(event => (
-                                                <EventRow key={event.id} event={event} onEdit={openEditDialog} onDelete={handleDelete} onToggle={handleToggleActive} />
+                                                <EventRow key={event.id} event={event} recurrenceLabel={RECURRENCE_LABELS[event.recurrence as keyof typeof RECURRENCE_LABELS] || RECURRENCE_LABELS['once']} onEdit={openEditDialog} onDelete={handleDelete} onToggle={handleToggleActive} />
                                             ))}
                                         </div>
                                     )}
@@ -208,45 +213,45 @@ export default function EventManager({ departmentId, isOpen, onOpenChange }: Eve
 
             {/* Create/Edit Dialog */}
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent className="sm:max-w-lg">
+                <DialogContent className="sm:max-w-lg shadow-xl" style={{ background: '#ffffff', borderColor: '#e2e8f0' }}>
                     <DialogHeader>
-                        <DialogTitle>{editingEvent ? '編輯排程事件' : '新增排程事件'}</DialogTitle>
+                        <DialogTitle className="text-slate-900">{editingEvent ? (dict.event_edit || '編輯排程事件') : (dict.event_add || '新增排程事件')}</DialogTitle>
                     </DialogHeader>
 
                     <div className="space-y-4 py-2">
                         <div className="space-y-1">
-                            <label className="text-sm font-medium text-slate-700">事件標題 *</label>
+                            <label className="text-sm font-medium text-slate-700">{dict.event_title_label || '事件標題 *'}</label>
                             <input
                                 value={formTitle}
                                 onChange={(e) => setFormTitle(e.target.value)}
-                                className="w-full p-2 text-sm rounded-md border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                                placeholder="例如：ISO 稽核、新人滿 6 個月考核"
+                                className="w-full p-2 text-sm rounded-md border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-slate-900 bg-white"
+                                placeholder={dict.event_title_placeholder || '例如：ISO 稽核、新人滿 6 個月考核'}
                             />
                         </div>
 
                         <div className="space-y-1">
-                            <label className="text-sm font-medium text-slate-700">描述 (選填)</label>
+                            <label className="text-sm font-medium text-slate-700">{dict.event_desc_label || '描述 (選填)'}</label>
                             <textarea
                                 value={formDescription}
                                 onChange={(e) => setFormDescription(e.target.value)}
-                                className="w-full p-2 text-sm rounded-md border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 h-20 resize-none"
-                                placeholder="提醒內容，將顯示在自動產生的卡片上"
+                                className="w-full p-2 text-sm rounded-md border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 h-20 resize-none text-slate-900 bg-white"
+                                placeholder={dict.event_desc_placeholder || '提醒內容，將顯示在自動產生的卡片上'}
                             />
                         </div>
 
                         <div className="space-y-1">
-                            <label className="text-sm font-medium text-slate-700">基準日期 *</label>
+                            <label className="text-sm font-medium text-slate-700">{dict.event_date_label || '基準日期 *'}</label>
                             <input
                                 type="date"
                                 value={formEventDate}
                                 onChange={(e) => setFormEventDate(e.target.value)}
-                                className="w-full p-2 text-sm rounded-md border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                                className="w-full p-2 text-sm rounded-md border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-slate-900 bg-white"
                             />
-                            <p className="text-xs text-slate-400">例如：新人報到日、稽核基準日</p>
+                            <p className="text-xs text-slate-400">{dict.event_date_hint || '例如：新人報到日、稽核基準日'}</p>
                         </div>
 
                         <div className="space-y-1">
-                            <label className="text-sm font-medium text-slate-700">提醒時機</label>
+                            <label className="text-sm font-medium text-slate-700">{dict.event_timing_label || '提醒時機'}</label>
                             <div className="flex flex-wrap gap-1.5">
                                 {OFFSET_PRESETS.map(preset => (
                                     <button
@@ -263,23 +268,23 @@ export default function EventManager({ departmentId, isOpen, onOpenChange }: Eve
                                 ))}
                             </div>
                             <div className="flex items-center gap-2 mt-2">
-                                <span className="text-xs text-slate-500">自訂天數：</span>
+                                <span className="text-xs text-slate-500">{dict.event_custom_days || '自訂天數：'}</span>
                                 <input
                                     type="number"
                                     min={0}
                                     value={formOffsetDays}
                                     onChange={(e) => setFormOffsetDays(parseInt(e.target.value) || 0)}
-                                    className="w-20 p-1.5 text-sm rounded border border-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                                    className="w-20 p-1.5 text-sm rounded border border-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-400 text-slate-900 bg-white"
                                 />
-                                <span className="text-xs text-slate-500">天</span>
+                                <span className="text-xs text-slate-500">{dict.event_days || '天'}</span>
                             </div>
                             <p className="text-xs text-indigo-600 font-medium mt-1">
-                                📅 預計提醒日期：{computedRemindDate}
+                                📅 {dict.event_predict_date || '預計提醒日期：'}{computedRemindDate}
                             </p>
                         </div>
 
                         <div className="space-y-1">
-                            <label className="text-sm font-medium text-slate-700">重複週期</label>
+                            <label className="text-sm font-medium text-slate-700">{dict.event_recurrence_label || '重複週期'}</label>
                             <div className="flex gap-2">
                                 {(['once', 'quarterly', 'yearly'] as const).map(r => (
                                     <button
@@ -312,11 +317,13 @@ export default function EventManager({ departmentId, isOpen, onOpenChange }: Eve
 
 function EventRow({
     event,
+    recurrenceLabel,
     onEdit,
     onDelete,
     onToggle,
 }: {
     event: ScheduledEvent
+    recurrenceLabel: string
     onEdit: (e: ScheduledEvent) => void
     onDelete: (e: ScheduledEvent) => void
     onToggle: (e: ScheduledEvent) => void
@@ -331,7 +338,7 @@ function EventRow({
             <div className="flex-1 min-w-0">
                 <div className="font-medium text-white truncate">{event.title}</div>
                 <div className="text-white/40 text-xs mt-0.5">
-                    📅 {remindDate} · {RECURRENCE_LABELS[event.recurrence]}
+                    📅 {remindDate} · {recurrenceLabel}
                     {event.last_triggered_at && ` · 上次 ${new Date(event.last_triggered_at).toLocaleDateString('zh-TW')}`}
                 </div>
             </div>
