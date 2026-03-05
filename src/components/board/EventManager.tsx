@@ -136,13 +136,13 @@ export default function EventManager({ departmentId, isOpen, onOpenChange }: Eve
         <>
             {/* Right-side Drawer Overlay */}
             {isOpen && (
-                <div className="fixed inset-0 z-[60]" onClick={() => onOpenChange(false)}>
-                    {/* Backdrop */}
-                    <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
+                <div className="fixed inset-0 z-[100]" onClick={() => onOpenChange(false)}>
+                    {/* Backdrop - fully blocks background content */}
+                    <div className="absolute inset-0 bg-black/60" />
 
                     {/* Drawer Panel */}
                     <div
-                        className="absolute top-0 right-0 h-full w-full max-w-md bg-slate-900 shadow-2xl border-l border-white/10 flex flex-col animate-in slide-in-from-right duration-300"
+                        className="absolute top-0 right-0 h-full w-full max-w-md bg-slate-900 shadow-2xl border-l border-slate-700 flex flex-col animate-in slide-in-from-right duration-300"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Header */}
@@ -253,8 +253,8 @@ export default function EventManager({ departmentId, isOpen, onOpenChange }: Eve
                                         type="button"
                                         onClick={() => setFormOffsetDays(preset.days)}
                                         className={`px-2.5 py-1 text-xs rounded-full border transition-colors ${formOffsetDays === preset.days
-                                                ? 'bg-indigo-600 text-white border-indigo-600'
-                                                : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'
+                                            ? 'bg-indigo-600 text-white border-indigo-600'
+                                            : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'
                                             }`}
                                     >
                                         {preset.label}
@@ -286,8 +286,8 @@ export default function EventManager({ departmentId, isOpen, onOpenChange }: Eve
                                         type="button"
                                         onClick={() => setFormRecurrence(r)}
                                         className={`px-3 py-1.5 text-xs rounded-md border transition-colors ${formRecurrence === r
-                                                ? 'bg-indigo-600 text-white border-indigo-600'
-                                                : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'
+                                            ? 'bg-indigo-600 text-white border-indigo-600'
+                                            : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'
                                             }`}
                                     >
                                         {RECURRENCE_LABELS[r]}
