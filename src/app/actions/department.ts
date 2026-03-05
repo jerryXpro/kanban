@@ -82,6 +82,38 @@ export async function createDepartment(name: string, icon: string | null = null,
     return { data: deptData }
 }
 
+export async function createDefaultLists(boardId: string, departmentId: string): Promise<{ success?: boolean; error?: string }> {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Not authenticated' }
+
+    // Get current max order in the board
+    const { data: existingLists } = await supabase
+        .from('lists')
+        .select('order')
+        .eq('board_id', boardId)
+        .order('order', { ascending: false })
+        .limit(1)
+
+    const startOrder = existingLists && existingLists.length > 0 ? existingLists[0].order + 1000 : 1000
+
+    const defaultLists = [
+        { board_id: boardId, title: '📋 待辦事項', order: startOrder },
+        { board_id: boardId, title: '🔄 進行事項', order: startOrder + 1000 },
+        { board_id: boardId, title: '✅ 完成事項', order: startOrder + 2000 },
+    ]
+
+    const { error } = await supabase
+        .from('lists')
+        .insert(defaultLists)
+
+    if (error) return { error: error.message }
+
+    revalidatePath(`/department/${departmentId}`)
+    return { success: true }
+}
+
 export async function initializeBoard(departmentId: string, departmentName: string) {
     const supabase = await createClient()
 

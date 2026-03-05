@@ -435,6 +435,24 @@ export default function KanbanBoard({ initialLists, userProfile, boardId, depart
         >
             <div className="flex w-full gap-6 overflow-x-auto pb-8 snap-x snap-mandatory px-4 md:px-8 scrollbar-hide">
                 <SortableContext items={lists.map((l) => l.id)} strategy={horizontalListSortingStrategy}>
+                    {lists.length === 0 && (userProfile?.is_admin || userProfile?.is_department_admin) && (
+                        <div className="flex flex-col items-center justify-center w-full py-16 text-white">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mb-4 opacity-60"><path d="M11 12H3" /><path d="M16 6H3" /><path d="M16 18H3" /><path d="M18 9v6" /><path d="M21 12h-6" /></svg>
+                            <h3 className="text-lg font-medium mb-1 opacity-90">看板尚無列表</h3>
+                            <p className="text-sm opacity-60 mb-5">點擊下方按鈕快速建立預設列表</p>
+                            <button
+                                onClick={async () => {
+                                    const { createDefaultLists } = await import('@/app/actions/department')
+                                    const res = await createDefaultLists(boardId, departmentId)
+                                    if (res.error) alert(res.error)
+                                    else window.location.reload()
+                                }}
+                                className="px-6 py-2.5 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg text-white font-medium text-sm transition-colors border border-white/20"
+                            >
+                                📋 一鍵建立預設列表
+                            </button>
+                        </div>
+                    )}
                     {lists.map((list) => (
                         <KanbanList key={list.id} list={list} cards={list.cards} userProfile={userProfile} boardId={boardId} departments={departments} systemUsers={systemUsers} />
                     ))}

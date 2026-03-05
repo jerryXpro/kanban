@@ -7,7 +7,8 @@ import { I18nText } from '@/components/ui/I18nText'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { CalendarClock } from 'lucide-react'
+import { CalendarClock, ListPlus } from 'lucide-react'
+import { createDefaultLists } from '@/app/actions/department'
 import AnomalyReportDialog from '@/components/board/AnomalyReportDialog'
 import ThemeSelector from '@/components/board/ThemeSelector'
 import EventManager from '@/components/board/EventManager'
@@ -84,6 +85,25 @@ export default function BoardHeader({ departmentId, departmentName, managerName,
                     >
                         <CalendarClock size={15} className="text-amber-300" />
                         <span className="hidden sm:inline">排程提醒</span>
+                    </button>
+                )}
+
+                {isManager && boardId && (
+                    <button
+                        onClick={async () => {
+                            if (!confirm('確定要建立預設列表（待辦事項、進行事項、完成事項）？')) return
+                            const res = await createDefaultLists(boardId, departmentId)
+                            if (res.error) {
+                                alert(res.error)
+                            } else {
+                                window.location.reload()
+                            }
+                        }}
+                        className="flex items-center gap-1.5 text-white/80 hover:text-white hover:bg-white/15 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors"
+                        title="一鍵建立預設列表"
+                    >
+                        <ListPlus size={15} className="text-emerald-300" />
+                        <span className="hidden sm:inline">預設列表</span>
                     </button>
                 )}
 
