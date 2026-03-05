@@ -46,7 +46,7 @@ export async function createDepartment(name: string, icon: string | null = null,
     }
 
     // 3. Create a board for the new department automatically
-    const { error: boardError } = await supabase
+    const { data: boardData, error: boardError } = await supabase
         .from('boards')
         .insert({
             department_id: deptData.id,
@@ -54,9 +54,28 @@ export async function createDepartment(name: string, icon: string | null = null,
             background_color: color || '#4F46E5',
             is_active: true
         })
+        .select('id')
+        .single()
 
     if (boardError) {
         console.error('Failed to create default board:', boardError)
+    }
+
+    // 4. Create default lists for the new board
+    if (boardData) {
+        const defaultLists = [
+            { board_id: boardData.id, title: '📋 待辦事項', order: 1000 },
+            { board_id: boardData.id, title: '🔄 進行事項', order: 2000 },
+            { board_id: boardData.id, title: '✅ 完成事項', order: 3000 },
+        ]
+
+        const { error: listsError } = await supabase
+            .from('lists')
+            .insert(defaultLists)
+
+        if (listsError) {
+            console.error('Failed to create default lists:', listsError)
+        }
     }
 
     revalidatePath('/')
