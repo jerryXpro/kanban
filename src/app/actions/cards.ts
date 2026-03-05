@@ -214,7 +214,30 @@ export async function updateCard(
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: '尚未登入' }
 
-    const { data: currentCard } = await supabase.from('cards').select('list_id, assigned_department_id').eq('id', cardId).single()
+    // Fetch user profile and card info for permission check
+    const [{ data: currentCard }, { data: profile }] = await Promise.all([
+        supabase.from('cards')
+            .select('list_id, assigned_department_id, card_type, source_department_id, created_by, lists(is_global)')
+            .eq('id', cardId).single(),
+        supabase.from('profiles').select('is_admin, department_id, can_manage_global_messages').eq('id', user.id).single()
+    ])
+
+    if (!currentCard || !profile) return { error: '卡片不存在或使用者資料遺失' }
+
+    // Enforce Ownership Rules
+    let canModify = false
+    if (profile.is_admin) {
+        canModify = true
+    } else if (currentCard.card_type === 'anomaly') {
+        canModify = profile.department_id === currentCard.source_department_id
+    } else if (currentCard.lists && (currentCard.lists as any).is_global) {
+        canModify = profile.can_manage_global_messages || currentCard.created_by === user.id
+    } else {
+        // Regular card - rely on RLS/Board access rules
+        canModify = true
+    }
+
+    if (!canModify) return { error: '無權限編輯此卡片 (需發送單位或管理員權限)' }
 
     let updatePayload: any = {
         title: title.trim(),
@@ -254,6 +277,31 @@ export async function deleteCard(cardId: string) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: '尚未登入' }
+
+    // Fetch user profile and card info for permission check
+    const [{ data: currentCard }, { data: profile }] = await Promise.all([
+        supabase.from('cards')
+            .select('card_type, source_department_id, created_by, lists(is_global)')
+            .eq('id', cardId).single(),
+        supabase.from('profiles').select('is_admin, department_id, can_manage_global_messages').eq('id', user.id).single()
+    ])
+
+    if (!currentCard || !profile) return { error: '卡片不存在或使用者資料遺失' }
+
+    // Enforce Ownership Rules
+    let canModify = false
+    if (profile.is_admin) {
+        canModify = true
+    } else if (currentCard.card_type === 'anomaly') {
+        canModify = profile.department_id === currentCard.source_department_id
+    } else if (currentCard.lists && (currentCard.lists as any).is_global) {
+        canModify = profile.can_manage_global_messages || currentCard.created_by === user.id
+    } else {
+        // Regular card - rely on RLS/Board access rules
+        canModify = true
+    }
+
+    if (!canModify) return { error: '無權限刪除此卡片 (需發送單位或管理員權限)' }
 
     const { error } = await supabase
         .from('cards')

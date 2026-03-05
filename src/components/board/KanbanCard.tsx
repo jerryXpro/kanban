@@ -52,9 +52,28 @@ export default function KanbanCard({ card, isGlobalList, userProfile, isOverlay,
     const { locale } = useLocaleStore()
     const dict = dictionaries[locale].board
 
-    // A user can manage (edit/delete) announcements and anomaly cards
-    // if they are admin, dept admin, or can manage global messages
-    const canManage = !!(userProfile?.is_admin || userProfile?.is_department_admin || userProfile?.can_manage_global_messages)
+    const isAnomaly = card.card_type === 'anomaly'
+    const sourceDeptName = isAnomaly && card.source_department_id
+        ? departments.find(d => d.id === card.source_department_id)?.name
+        : null
+
+    // Determine if the user can edit or delete this card based on centralized rules
+    let canEditOrDelete = false
+
+    if (userProfile) {
+        if (userProfile.is_admin) {
+            canEditOrDelete = true // Global admins can manage everything
+        } else if (isAnomaly) {
+            // Anomaly cards: Only the sending department can edit/delete
+            canEditOrDelete = userProfile.department_id === card.source_department_id
+        } else if (isGlobalList) {
+            // Global announcement cards: Only those with global message permission (or the creator) can edit/delete
+            canEditOrDelete = !!userProfile.can_manage_global_messages || userProfile.id === card.created_by
+        } else {
+            // Regular cards: Anyone with access to the board (within the department) can edit/delete
+            canEditOrDelete = true
+        }
+    }
 
     const handleDelete = async () => {
         if (!confirm(dict.delete_card_confirm)) return
@@ -81,11 +100,6 @@ export default function KanbanCard({ card, isGlobalList, userProfile, isOverlay,
         transition,
         transform: CSS.Transform.toString(transform),
     }
-
-    const isAnomaly = card.card_type === 'anomaly'
-    const sourceDeptName = isAnomaly && card.source_department_id
-        ? departments.find(d => d.id === card.source_department_id)?.name
-        : null
 
     // Determine Assignment Display Text
     let assignmentText = null
@@ -186,8 +200,8 @@ export default function KanbanCard({ card, isGlobalList, userProfile, isOverlay,
                         {card.title}
                     </div>
 
-                    {/* Show menu for all logged-in users; server actions enforce actual permissions */}
-                    {!!userProfile && !isOverlay && (
+                    {/* Show menu only if authorized */}
+                    {canEditOrDelete && !isOverlay && (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <button
