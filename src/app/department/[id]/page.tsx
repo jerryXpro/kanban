@@ -142,7 +142,7 @@ export default async function DepartmentBoardPage({
             />
 
             {/* Google Calendar Widget */}
-            <CalendarWidget calendarId={department.calendar_id || undefined} />
+            <CalendarWidget calendarId={department.calendar_id || undefined} themeColor={boardData?.background_color || undefined} />
 
             {/* Board Layout Area */}
             <main className="flex-1 overflow-hidden pt-6 relative">
