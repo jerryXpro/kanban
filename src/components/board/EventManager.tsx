@@ -213,7 +213,7 @@ export function EventManager({ departmentId, isOpen, onOpenChange }: EventManage
 
             {/* Create/Edit Dialog */}
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent className="sm:max-w-lg shadow-xl" style={{ background: '#ffffff', borderColor: '#e2e8f0' }}>
+                <DialogContent className="sm:max-w-lg shadow-xl" style={{ background: '#ffffff', borderColor: '#e2e8f0' }} overlayClassName="!bg-transparent">
                     <DialogHeader>
                         <DialogTitle className="text-slate-900">{editingEvent ? (dict.event_edit || '編輯排程事件') : (dict.event_add || '新增排程事件')}</DialogTitle>
                     </DialogHeader>
