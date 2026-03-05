@@ -7,8 +7,10 @@ import { I18nText } from '@/components/ui/I18nText'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { CalendarClock } from 'lucide-react'
 import AnomalyReportDialog from '@/components/board/AnomalyReportDialog'
 import ThemeSelector from '@/components/board/ThemeSelector'
+import EventManager from '@/components/board/EventManager'
 
 interface BoardHeaderProps {
     departmentId: string
@@ -26,6 +28,7 @@ interface BoardHeaderProps {
 export default function BoardHeader({ departmentId, departmentName, managerName, userRole, userEmail, isAdmin, workspaceName, boardId, currentThemeColor, isManager }: BoardHeaderProps) {
     const router = useRouter()
     const [isAnomalyOpen, setIsAnomalyOpen] = useState(false)
+    const [isEventDrawerOpen, setIsEventDrawerOpen] = useState(false)
     const supabase = createClient()
 
     const handleSignOut = async () => {
@@ -73,6 +76,17 @@ export default function BoardHeader({ departmentId, departmentName, managerName,
                     />
                 )}
 
+                {isManager && (
+                    <button
+                        onClick={() => setIsEventDrawerOpen(true)}
+                        className="flex items-center gap-1.5 text-white/80 hover:text-white hover:bg-white/15 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors"
+                        title="排程提醒事件"
+                    >
+                        <CalendarClock size={15} className="text-amber-300" />
+                        <span className="hidden sm:inline">排程提醒</span>
+                    </button>
+                )}
+
                 <LanguageSwitcher />
 
                 <div className="text-sm opacity-80 hidden sm:flex items-center gap-2">
@@ -103,6 +117,12 @@ export default function BoardHeader({ departmentId, departmentName, managerName,
                 currentDepartmentName={departmentName}
                 isOpen={isAnomalyOpen}
                 onOpenChange={setIsAnomalyOpen}
+            />
+
+            <EventManager
+                departmentId={departmentId}
+                isOpen={isEventDrawerOpen}
+                onOpenChange={setIsEventDrawerOpen}
             />
         </header>
     )

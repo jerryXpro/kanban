@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { CalendarClock, Plus, Pencil, Trash2, ChevronDown, ChevronUp, Power, PowerOff } from 'lucide-react'
+import { CalendarClock, Plus, Pencil, Trash2, Power, PowerOff, X } from 'lucide-react'
 import {
     Dialog,
     DialogContent,
@@ -20,7 +20,8 @@ import {
 
 interface EventManagerProps {
     departmentId: string
-    isManager: boolean
+    isOpen: boolean
+    onOpenChange: (open: boolean) => void
 }
 
 const RECURRENCE_LABELS: Record<string, string> = {
@@ -38,10 +39,9 @@ const OFFSET_PRESETS = [
     { label: '1 年後', days: 365 },
 ]
 
-export default function EventManager({ departmentId, isManager }: EventManagerProps) {
+export default function EventManager({ departmentId, isOpen, onOpenChange }: EventManagerProps) {
     const [events, setEvents] = useState<ScheduledEvent[]>([])
     const [loading, setLoading] = useState(true)
-    const [expanded, setExpanded] = useState(false)
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [editingEvent, setEditingEvent] = useState<ScheduledEvent | null>(null)
 
@@ -60,10 +60,8 @@ export default function EventManager({ departmentId, isManager }: EventManagerPr
     }, [departmentId])
 
     useEffect(() => {
-        fetchEvents()
-    }, [fetchEvents])
-
-    if (!isManager) return null
+        if (isOpen) fetchEvents()
+    }, [isOpen, fetchEvents])
 
     const activeEvents = events.filter(e => e.is_active)
     const inactiveEvents = events.filter(e => !e.is_active)
@@ -79,7 +77,6 @@ export default function EventManager({ departmentId, isManager }: EventManagerPr
 
     const openCreateDialog = () => {
         resetForm()
-        // Default to today
         setFormEventDate(new Date().toISOString().split('T')[0])
         setIsDialogOpen(true)
     }
@@ -95,51 +92,31 @@ export default function EventManager({ departmentId, isManager }: EventManagerPr
     }
 
     const handleSave = async () => {
-        if (!formTitle.trim()) {
-            toast.error('請輸入事件標題')
-            return
-        }
-        if (!formEventDate) {
-            toast.error('請選擇基準日期')
-            return
-        }
+        if (!formTitle.trim()) { toast.error('請輸入事件標題'); return }
+        if (!formEventDate) { toast.error('請選擇基準日期'); return }
 
         if (editingEvent) {
             const res = await updateScheduledEvent(
                 editingEvent.id, departmentId, formTitle, formDescription,
                 formEventDate, formOffsetDays, formRecurrence, editingEvent.is_active
             )
-            if (res.error) {
-                toast.error(res.error)
-            } else {
-                toast.success('排程事件已更新')
-                setIsDialogOpen(false)
-                fetchEvents()
-            }
+            if (res.error) toast.error(res.error)
+            else { toast.success('排程事件已更新'); setIsDialogOpen(false); fetchEvents() }
         } else {
             const res = await createScheduledEvent(
                 departmentId, formTitle, formDescription,
                 formEventDate, formOffsetDays, formRecurrence
             )
-            if (res.error) {
-                toast.error(res.error)
-            } else {
-                toast.success('排程事件已建立')
-                setIsDialogOpen(false)
-                fetchEvents()
-            }
+            if (res.error) toast.error(res.error)
+            else { toast.success('排程事件已建立'); setIsDialogOpen(false); fetchEvents() }
         }
     }
 
     const handleDelete = async (event: ScheduledEvent) => {
         if (!confirm(`確定要刪除「${event.title}」？`)) return
         const res = await deleteScheduledEvent(event.id, departmentId)
-        if (res.error) {
-            toast.error(res.error)
-        } else {
-            toast.success('排程事件已刪除')
-            fetchEvents()
-        }
+        if (res.error) toast.error(res.error)
+        else { toast.success('排程事件已刪除'); fetchEvents() }
     }
 
     const handleToggleActive = async (event: ScheduledEvent) => {
@@ -147,12 +124,8 @@ export default function EventManager({ departmentId, isManager }: EventManagerPr
             event.id, departmentId, event.title, event.description || '',
             event.event_date, event.remind_offset_days, event.recurrence, !event.is_active
         )
-        if (res.error) {
-            toast.error(res.error)
-        } else {
-            toast.success(event.is_active ? '排程已停用' : '排程已啟用')
-            fetchEvents()
-        }
+        if (res.error) toast.error(res.error)
+        else { toast.success(event.is_active ? '排程已停用' : '排程已啟用'); fetchEvents() }
     }
 
     const computedRemindDate = formEventDate
@@ -160,51 +133,75 @@ export default function EventManager({ departmentId, isManager }: EventManagerPr
         : '—'
 
     return (
-        <div className="mx-4 mb-2">
-            {/* Toggle Header */}
-            <button
-                onClick={() => setExpanded(!expanded)}
-                className="flex items-center gap-2 w-full px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white/90 text-sm font-medium transition-all"
-            >
-                <CalendarClock size={16} className="text-amber-300" />
-                <span>排程提醒事件</span>
-                <span className="text-white/50 text-xs ml-1">({activeEvents.length} 啟用中)</span>
-                <span className="ml-auto">
-                    {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                </span>
-            </button>
+        <>
+            {/* Right-side Drawer Overlay */}
+            {isOpen && (
+                <div className="fixed inset-0 z-[60]" onClick={() => onOpenChange(false)}>
+                    {/* Backdrop */}
+                    <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
 
-            {/* Expandable Content */}
-            {expanded && (
-                <div className="mt-2 bg-white/10 backdrop-blur-sm rounded-lg p-3 text-white space-y-2">
-                    {/* Add Button */}
-                    <button
-                        onClick={openCreateDialog}
-                        className="flex items-center gap-1.5 text-xs font-medium text-amber-300 hover:text-amber-200 transition-colors"
+                    {/* Drawer Panel */}
+                    <div
+                        className="absolute top-0 right-0 h-full w-full max-w-md bg-slate-900 shadow-2xl border-l border-white/10 flex flex-col animate-in slide-in-from-right duration-300"
+                        onClick={(e) => e.stopPropagation()}
                     >
-                        <Plus size={14} />
-                        新增排程事件
-                    </button>
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
+                            <div className="flex items-center gap-2">
+                                <CalendarClock size={20} className="text-amber-400" />
+                                <h2 className="text-lg font-semibold text-white">排程提醒事件</h2>
+                                <span className="text-xs text-white/40 bg-white/10 px-2 py-0.5 rounded-full">
+                                    {activeEvents.length} 啟用中
+                                </span>
+                            </div>
+                            <button
+                                onClick={() => onOpenChange(false)}
+                                className="text-white/60 hover:text-white hover:bg-white/10 rounded-lg p-1.5 transition-colors"
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
 
-                    {loading ? (
-                        <div className="text-xs text-white/50 py-2">載入中...</div>
-                    ) : events.length === 0 ? (
-                        <div className="text-xs text-white/50 py-2">尚未建立任何排程事件</div>
-                    ) : (
-                        <div className="space-y-1.5 max-h-60 overflow-y-auto">
-                            {activeEvents.map(event => (
-                                <EventRow key={event.id} event={event} onEdit={openEditDialog} onDelete={handleDelete} onToggle={handleToggleActive} />
-                            ))}
-                            {inactiveEvents.length > 0 && (
+                        {/* Content */}
+                        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+                            {/* Add Button */}
+                            <button
+                                onClick={openCreateDialog}
+                                className="flex items-center gap-2 w-full px-4 py-2.5 rounded-lg border border-dashed border-amber-400/40 text-amber-300 text-sm font-medium hover:bg-amber-400/10 transition-colors"
+                            >
+                                <Plus size={16} />
+                                新增排程事件
+                            </button>
+
+                            {loading ? (
+                                <div className="text-sm text-white/40 py-8 text-center">載入中...</div>
+                            ) : events.length === 0 ? (
+                                <div className="text-sm text-white/40 py-8 text-center">
+                                    尚未建立任何排程事件<br />
+                                    <span className="text-xs">點擊上方按鈕新增第一個排程提醒</span>
+                                </div>
+                            ) : (
                                 <>
-                                    <div className="text-[10px] text-white/40 pt-2 border-t border-white/10">已停用</div>
-                                    {inactiveEvents.map(event => (
-                                        <EventRow key={event.id} event={event} onEdit={openEditDialog} onDelete={handleDelete} onToggle={handleToggleActive} />
-                                    ))}
+                                    {activeEvents.length > 0 && (
+                                        <div className="space-y-2">
+                                            <div className="text-xs font-medium text-white/50 uppercase tracking-wider">啟用中</div>
+                                            {activeEvents.map(event => (
+                                                <EventRow key={event.id} event={event} onEdit={openEditDialog} onDelete={handleDelete} onToggle={handleToggleActive} />
+                                            ))}
+                                        </div>
+                                    )}
+                                    {inactiveEvents.length > 0 && (
+                                        <div className="space-y-2 pt-3 border-t border-white/10">
+                                            <div className="text-xs font-medium text-white/30 uppercase tracking-wider">已停用</div>
+                                            {inactiveEvents.map(event => (
+                                                <EventRow key={event.id} event={event} onEdit={openEditDialog} onDelete={handleDelete} onToggle={handleToggleActive} />
+                                            ))}
+                                        </div>
+                                    )}
                                 </>
                             )}
                         </div>
-                    )}
+                    </div>
                 </div>
             )}
 
@@ -216,7 +213,6 @@ export default function EventManager({ departmentId, isManager }: EventManagerPr
                     </DialogHeader>
 
                     <div className="space-y-4 py-2">
-                        {/* Title */}
                         <div className="space-y-1">
                             <label className="text-sm font-medium text-slate-700">事件標題 *</label>
                             <input
@@ -227,7 +223,6 @@ export default function EventManager({ departmentId, isManager }: EventManagerPr
                             />
                         </div>
 
-                        {/* Description */}
                         <div className="space-y-1">
                             <label className="text-sm font-medium text-slate-700">描述 (選填)</label>
                             <textarea
@@ -238,7 +233,6 @@ export default function EventManager({ departmentId, isManager }: EventManagerPr
                             />
                         </div>
 
-                        {/* Event Date */}
                         <div className="space-y-1">
                             <label className="text-sm font-medium text-slate-700">基準日期 *</label>
                             <input
@@ -250,7 +244,6 @@ export default function EventManager({ departmentId, isManager }: EventManagerPr
                             <p className="text-xs text-slate-400">例如：新人報到日、稽核基準日</p>
                         </div>
 
-                        {/* Offset */}
                         <div className="space-y-1">
                             <label className="text-sm font-medium text-slate-700">提醒時機</label>
                             <div className="flex flex-wrap gap-1.5">
@@ -284,7 +277,6 @@ export default function EventManager({ departmentId, isManager }: EventManagerPr
                             </p>
                         </div>
 
-                        {/* Recurrence */}
                         <div className="space-y-1">
                             <label className="text-sm font-medium text-slate-700">重複週期</label>
                             <div className="flex gap-2">
@@ -306,22 +298,14 @@ export default function EventManager({ departmentId, isManager }: EventManagerPr
                     </div>
 
                     <DialogFooter>
-                        <button
-                            onClick={() => setIsDialogOpen(false)}
-                            className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-md"
-                        >
-                            取消
-                        </button>
-                        <button
-                            onClick={handleSave}
-                            className="px-5 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md shadow-sm"
-                        >
+                        <button onClick={() => setIsDialogOpen(false)} className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-md">取消</button>
+                        <button onClick={handleSave} className="px-5 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md shadow-sm">
                             {editingEvent ? '更新' : '建立'}
                         </button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </div>
+        </>
     )
 }
 
@@ -341,24 +325,24 @@ function EventRow({
         : '—'
 
     return (
-        <div className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs group transition-colors ${event.is_active ? 'bg-white/5 hover:bg-white/15' : 'bg-white/5 opacity-50'
+        <div className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm group transition-colors ${event.is_active ? 'bg-white/5 hover:bg-white/10' : 'bg-white/5 opacity-40'
             }`}>
             <div className="flex-1 min-w-0">
-                <div className="font-medium truncate">{event.title}</div>
-                <div className="text-white/50 text-[10px]">
-                    {remindDate} · {RECURRENCE_LABELS[event.recurrence]}
-                    {event.last_triggered_at && ` · 上次觸發 ${new Date(event.last_triggered_at).toLocaleDateString('zh-TW')}`}
+                <div className="font-medium text-white truncate">{event.title}</div>
+                <div className="text-white/40 text-xs mt-0.5">
+                    📅 {remindDate} · {RECURRENCE_LABELS[event.recurrence]}
+                    {event.last_triggered_at && ` · 上次 ${new Date(event.last_triggered_at).toLocaleDateString('zh-TW')}`}
                 </div>
             </div>
             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                <button onClick={() => onToggle(event)} className="p-1 hover:bg-white/20 rounded" title={event.is_active ? '停用' : '啟用'}>
-                    {event.is_active ? <PowerOff size={12} /> : <Power size={12} />}
+                <button onClick={() => onToggle(event)} className="p-1.5 hover:bg-white/15 rounded-md text-white/60 hover:text-white" title={event.is_active ? '停用' : '啟用'}>
+                    {event.is_active ? <PowerOff size={14} /> : <Power size={14} />}
                 </button>
-                <button onClick={() => onEdit(event)} className="p-1 hover:bg-white/20 rounded" title="編輯">
-                    <Pencil size={12} />
+                <button onClick={() => onEdit(event)} className="p-1.5 hover:bg-white/15 rounded-md text-white/60 hover:text-white" title="編輯">
+                    <Pencil size={14} />
                 </button>
-                <button onClick={() => onDelete(event)} className="p-1 hover:bg-red-500/30 rounded text-red-300" title="刪除">
-                    <Trash2 size={12} />
+                <button onClick={() => onDelete(event)} className="p-1.5 hover:bg-red-500/20 rounded-md text-red-400" title="刪除">
+                    <Trash2 size={14} />
                 </button>
             </div>
         </div>

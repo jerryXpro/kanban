@@ -11,7 +11,6 @@ import { getSetting } from '@/lib/api/settings'
 import { cookies } from 'next/headers'
 import DepartmentPasswordPrompt from '@/components/department/DepartmentPasswordPrompt'
 import CalendarWidget from '@/components/board/CalendarWidget'
-import EventManager from '@/components/board/EventManager'
 
 export const dynamic = 'force-dynamic'
 
@@ -144,9 +143,6 @@ export default async function DepartmentBoardPage({
 
             {/* Google Calendar Widget */}
             <CalendarWidget calendarId={department.calendar_id || undefined} />
-
-            {/* Scheduled Event Reminders */}
-            <EventManager departmentId={department.id} isManager={isManager} />
 
             {/* Board Layout Area */}
             <main className="flex-1 overflow-hidden pt-6 relative">
