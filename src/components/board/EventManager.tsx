@@ -41,10 +41,12 @@ export function EventManager({ departmentId, isOpen, onOpenChange }: EventManage
     const [formDescription, setFormDescription] = useState('')
     const [formEventDate, setFormEventDate] = useState('')
     const [formOffsetDays, setFormOffsetDays] = useState(0)
-    const [formRecurrence, setFormRecurrence] = useState<'once' | 'quarterly' | 'yearly'>('once')
+    const [formRecurrence, setFormRecurrence] = useState<'once' | 'weekly' | 'monthly' | 'quarterly' | 'yearly'>('once')
 
     const RECURRENCE_LABELS: Record<string, string> = {
         once: dict.recurrence_once || '一次性',
+        weekly: dict.recurrence_weekly || '每週',
+        monthly: dict.recurrence_monthly || '每月',
         quarterly: dict.recurrence_quarterly || '每季',
         yearly: dict.recurrence_yearly || '每年',
     }
@@ -213,7 +215,7 @@ export function EventManager({ departmentId, isOpen, onOpenChange }: EventManage
 
             {/* Create/Edit Dialog */}
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent className="sm:max-w-lg shadow-xl" style={{ background: '#ffffff', borderColor: '#e2e8f0' }} overlayClassName="!bg-transparent">
+                <DialogContent className="sm:max-w-lg shadow-xl" style={{ background: '#ffffff', borderColor: '#e2e8f0' }} hideOverlay>
                     <DialogHeader>
                         <DialogTitle className="text-slate-900">{editingEvent ? (dict.event_edit || '編輯排程事件') : (dict.event_add || '新增排程事件')}</DialogTitle>
                     </DialogHeader>
@@ -286,7 +288,7 @@ export function EventManager({ departmentId, isOpen, onOpenChange }: EventManage
                         <div className="space-y-1">
                             <label className="text-sm font-medium text-slate-700">{dict.event_recurrence_label || '重複週期'}</label>
                             <div className="flex gap-2">
-                                {(['once', 'quarterly', 'yearly'] as const).map(r => (
+                                {(['once', 'weekly', 'monthly', 'quarterly', 'yearly'] as const).map(r => (
                                     <button
                                         key={r}
                                         type="button"
@@ -328,9 +330,28 @@ function EventRow({
     onDelete: (e: ScheduledEvent) => void
     onToggle: (e: ScheduledEvent) => void
 }) {
-    const remindDate = event.remind_date
-        ? new Date(event.remind_date).toLocaleDateString('zh-TW')
-        : '—'
+    // Simple next date projection based on recurrence
+    const getNextRemindDate = (baseDateStr: string | null, recurrence: string) => {
+        if (!baseDateStr) return '—'
+        const baseDate = new Date(baseDateStr)
+        const today = new Date()
+
+        if (recurrence === 'once' && baseDate < today) return '已過期'
+        if (recurrence === 'once') return baseDate.toLocaleDateString('zh-TW')
+
+        let nextDate = new Date(baseDate)
+        // Advance nextDate until it's in the future
+        while (nextDate < today) {
+            if (recurrence === 'weekly') nextDate.setDate(nextDate.getDate() + 7)
+            else if (recurrence === 'monthly') nextDate.setMonth(nextDate.getMonth() + 1)
+            else if (recurrence === 'quarterly') nextDate.setMonth(nextDate.getMonth() + 3)
+            else if (recurrence === 'yearly') nextDate.setFullYear(nextDate.getFullYear() + 1)
+            else break // fallback
+        }
+        return nextDate.toLocaleDateString('zh-TW')
+    }
+
+    const nextRemindDateStr = getNextRemindDate(event.remind_date, event.recurrence)
 
     return (
         <div className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm group transition-colors ${event.is_active ? 'bg-white/5 hover:bg-white/10' : 'bg-white/5 opacity-40'
@@ -338,7 +359,7 @@ function EventRow({
             <div className="flex-1 min-w-0">
                 <div className="font-medium text-white truncate">{event.title}</div>
                 <div className="text-white/40 text-xs mt-0.5">
-                    📅 {remindDate} · {recurrenceLabel}
+                    📅 {nextRemindDateStr} · {recurrenceLabel}
                     {event.last_triggered_at && ` · 上次 ${new Date(event.last_triggered_at).toLocaleDateString('zh-TW')}`}
                 </div>
             </div>

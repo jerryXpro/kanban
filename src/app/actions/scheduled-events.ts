@@ -11,7 +11,7 @@ export type ScheduledEvent = {
     event_date: string
     remind_offset_days: number
     remind_date: string
-    recurrence: 'once' | 'quarterly' | 'yearly'
+    recurrence: 'once' | 'weekly' | 'monthly' | 'quarterly' | 'yearly'
     is_active: boolean
     last_triggered_at: string | null
     created_by: string | null
@@ -39,7 +39,7 @@ export async function createScheduledEvent(
     description: string,
     eventDate: string,
     remindOffsetDays: number,
-    recurrence: 'once' | 'quarterly' | 'yearly'
+    recurrence: 'once' | 'weekly' | 'monthly' | 'quarterly' | 'yearly'
 ): Promise<{ success?: boolean; error?: string }> {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -70,7 +70,7 @@ export async function updateScheduledEvent(
     description: string,
     eventDate: string,
     remindOffsetDays: number,
-    recurrence: 'once' | 'quarterly' | 'yearly',
+    recurrence: 'once' | 'weekly' | 'monthly' | 'quarterly' | 'yearly',
     isActive: boolean
 ): Promise<{ success?: boolean; error?: string }> {
     const supabase = await createClient()
