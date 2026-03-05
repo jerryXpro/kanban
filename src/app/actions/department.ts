@@ -109,6 +109,14 @@ export async function updateDepartment(id: string, newName: string, icon: string
         return { error: error?.message || '更新失敗：請確認您有足夠的權限，或是資料庫 RLS 設定是否正確。' }
     }
 
+    if (color) {
+        // Also update the board background color to keep it synchronized if changed here
+        await supabase
+            .from('boards')
+            .update({ background_color: color })
+            .eq('department_id', id)
+    }
+
     revalidatePath('/')
     return { success: true }
 }

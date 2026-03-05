@@ -117,6 +117,9 @@ export default async function DepartmentBoardPage({
 
     const workspaceName = await getSetting('workspace_name', '看板管理系統')
 
+    const { isDepartmentManager } = await import('@/lib/api/admin')
+    const isManager = await isDepartmentManager(id)
+
     return (
         <div
             className="h-screen flex flex-col transition-colors duration-500"
@@ -133,6 +136,9 @@ export default async function DepartmentBoardPage({
                 userEmail={user.email}
                 isAdmin={!!profile?.is_admin}
                 workspaceName={workspaceName}
+                boardId={boardInfo?.id}
+                currentThemeColor={boardData?.background_color ?? undefined}
+                isManager={isManager}
             />
 
             {/* Google Calendar Widget */}

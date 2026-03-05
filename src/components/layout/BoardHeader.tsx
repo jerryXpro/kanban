@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import AnomalyReportDialog from '@/components/board/AnomalyReportDialog'
+import ThemeSelector from '@/components/board/ThemeSelector'
 
 interface BoardHeaderProps {
     departmentId: string
@@ -17,9 +18,12 @@ interface BoardHeaderProps {
     userEmail: string | undefined
     isAdmin: boolean
     workspaceName: string
+    boardId?: string
+    currentThemeColor?: string
+    isManager?: boolean
 }
 
-export default function BoardHeader({ departmentId, departmentName, managerName, userRole, userEmail, isAdmin, workspaceName }: BoardHeaderProps) {
+export default function BoardHeader({ departmentId, departmentName, managerName, userRole, userEmail, isAdmin, workspaceName, boardId, currentThemeColor, isManager }: BoardHeaderProps) {
     const router = useRouter()
     const [isAnomalyOpen, setIsAnomalyOpen] = useState(false)
     const supabase = createClient()
@@ -60,6 +64,14 @@ export default function BoardHeader({ departmentId, departmentName, managerName,
                     <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
                     <I18nText ns="board" textKey="report_anomaly" />
                 </Button>
+
+                {isManager && boardId && (
+                    <ThemeSelector
+                        boardId={boardId}
+                        departmentId={departmentId}
+                        currentThemeColor={currentThemeColor}
+                    />
+                )}
 
                 <LanguageSwitcher />
 
