@@ -93,7 +93,7 @@ export default function CalendarWidget({ calendarId }: CalendarWidgetProps) {
     const [isConfigured, setIsConfigured] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [viewMode, setViewMode] = useState<ViewMode>('twoWeeks')
-    const [textSize, setTextSize] = useState<TextSize>('sm')
+    const [textSize, setTextSize] = useState<TextSize>('md')
     const [expanded, setExpanded] = useState(true)
     const [offsetWeeks, setOffsetWeeks] = useState(0) // for two-week view navigation
     const [offsetMonths, setOffsetMonths] = useState(0) // for month view navigation
