@@ -4,7 +4,7 @@ import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-
 import { CSS } from '@dnd-kit/utilities'
 import { ListWithCards, Card, Profile } from '@/types/kanban'
 import KanbanCard from './KanbanCard'
-import { Plus, MoreHorizontal, Pencil, Trash2, AlertTriangle } from 'lucide-react'
+import { Plus, MoreHorizontal, Pencil, Trash2, AlertTriangle, Megaphone } from 'lucide-react'
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useLocaleStore } from '@/store/useLocaleStore'
@@ -153,6 +153,7 @@ export default function KanbanList({ list, cards, userProfile, isOverlay, boardI
                         </div>
                     ) : (
                         <span className="flex items-center gap-1.5 truncate">
+                            {list.is_global && <Megaphone size={16} className="shrink-0 text-amber-600" />}
                             {isAnomalyList && <AlertTriangle size={16} className="shrink-0 text-red-500" />}
                             {list.title}
                         </span>
