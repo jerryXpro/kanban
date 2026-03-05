@@ -215,7 +215,7 @@ export function EventManager({ departmentId, isOpen, onOpenChange }: EventManage
 
             {/* Create/Edit Dialog - Must be OUTSIDE the Drawer portal to prevent inherited darkness/z-index issues */}
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent className="sm:max-w-lg shadow-xl !bg-white !text-slate-900" style={{ background: '#ffffff', borderColor: '#e2e8f0' }} hideOverlay>
+                <DialogContent className="sm:max-w-lg shadow-xl !bg-white !text-slate-900 !z-[150]" style={{ background: '#ffffff', borderColor: '#e2e8f0' }} hideOverlay>
                     <DialogHeader>
                         <DialogTitle className="text-slate-900">{editingEvent ? (dict.event_edit || '編輯排程事件') : (dict.event_add || '新增排程事件')}</DialogTitle>
                     </DialogHeader>
