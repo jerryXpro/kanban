@@ -11,7 +11,7 @@ import { CalendarClock, ListPlus } from 'lucide-react'
 import { createDefaultLists } from '@/app/actions/department'
 import AnomalyReportDialog from '@/components/board/AnomalyReportDialog'
 import ThemeSelector from '@/components/board/ThemeSelector'
-import EventManager from '@/components/board/EventManager'
+import { EventManager } from '@/components/board/EventManager'
 import { useLocaleStore } from '@/store/useLocaleStore'
 import { dictionaries } from '@/lib/i18n/dictionaries'
 
@@ -33,6 +33,8 @@ export default function BoardHeader({ departmentId, departmentName, managerName,
     const [isAnomalyOpen, setIsAnomalyOpen] = useState(false)
     const [isEventDrawerOpen, setIsEventDrawerOpen] = useState(false)
     const supabase = createClient()
+    const { locale } = useLocaleStore()
+    const dict = dictionaries[locale].board
 
     const handleSignOut = async () => {
         await supabase.auth.signOut()
