@@ -213,9 +213,9 @@ export function EventManager({ departmentId, isOpen, onOpenChange }: EventManage
                 </div>, document.body
             )}
 
-            {/* Create/Edit Dialog */}
+            {/* Create/Edit Dialog - Must be OUTSIDE the Drawer portal to prevent inherited darkness/z-index issues */}
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent className="sm:max-w-lg shadow-xl" style={{ background: '#ffffff', borderColor: '#e2e8f0' }} hideOverlay>
+                <DialogContent className="sm:max-w-lg shadow-xl !bg-white !text-slate-900" style={{ background: '#ffffff', borderColor: '#e2e8f0' }} hideOverlay>
                     <DialogHeader>
                         <DialogTitle className="text-slate-900">{editingEvent ? (dict.event_edit || '編輯排程事件') : (dict.event_add || '新增排程事件')}</DialogTitle>
                     </DialogHeader>
@@ -287,7 +287,7 @@ export function EventManager({ departmentId, isOpen, onOpenChange }: EventManage
 
                         <div className="space-y-1">
                             <label className="text-sm font-medium text-slate-700">{dict.event_recurrence_label || '重複週期'}</label>
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 flex-wrap">
                                 {(['once', 'weekly', 'monthly', 'quarterly', 'yearly'] as const).map(r => (
                                     <button
                                         key={r}
