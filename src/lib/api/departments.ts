@@ -7,6 +7,7 @@ export async function getDepartments(): Promise<Department[]> {
     const { data, error } = await supabase
         .from('departments')
         .select('*')
+        .order('display_order', { ascending: true })
         .order('name', { ascending: true })
 
     if (error) {

@@ -1,11 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Department } from '@/types/kanban'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { MoreHorizontal, Pencil, Trash2, Lock, KeyRound } from 'lucide-react'
-import { createDepartment, updateDepartment, deleteDepartment } from '@/app/actions/department'
+import { createDepartment, updateDepartment, deleteDepartment, updateDepartmentOrder } from '@/app/actions/department'
 import { updateDepartmentPassword } from '@/app/actions/departmentPassword'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
@@ -78,6 +78,48 @@ export default function DepartmentManager({
     const [passwordDept, setPasswordDept] = useState<Department | null>(null)
     const [newPassword, setNewPassword] = useState('')
     const [isUpdatingPassword, setIsUpdatingPassword] = useState(false)
+
+    // Drag-and-drop state
+    const dragItem = useRef<number | null>(null)
+    const dragOverItem = useRef<number | null>(null)
+    const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
+
+    const handleDragStart = (index: number) => {
+        dragItem.current = index
+    }
+
+    const handleDragEnter = (index: number) => {
+        dragOverItem.current = index
+        setDragOverIndex(index)
+    }
+
+    const handleDragEnd = async () => {
+        if (dragItem.current === null || dragOverItem.current === null || dragItem.current === dragOverItem.current) {
+            setDragOverIndex(null)
+            return
+        }
+
+        const reordered = [...departments]
+        const [draggedItem] = reordered.splice(dragItem.current, 1)
+        reordered.splice(dragOverItem.current, 0, draggedItem)
+
+        setDepartments(reordered)
+        setDragOverIndex(null)
+        dragItem.current = null
+        dragOverItem.current = null
+
+        // Save new order to database
+        const orderedIds = reordered.map((dept, i) => ({
+            id: dept.id,
+            display_order: (i + 1) * 1000,
+        }))
+
+        const result = await updateDepartmentOrder(orderedIds)
+        if (result.error) {
+            toast.error(result.error)
+            setDepartments(initialDepartments) // revert on error
+        }
+    }
 
     const handleCreate = async () => {
         if (!createName.trim()) return
@@ -175,12 +217,20 @@ export default function DepartmentManager({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {departments.map((dept) => {
+                {departments.map((dept, index) => {
                     const IconComponent = (LucideIcons as any)[dept.icon || 'Briefcase'] as LucideIcon || LucideIcons.Briefcase;
                     const isManager = isAdmin || (manageableDepartmentIds && manageableDepartmentIds.includes(dept.id));
 
                     return (
-                        <div key={dept.id} className="relative group">
+                        <div
+                            key={dept.id}
+                            className={`relative group transition-all ${isAdmin ? 'cursor-grab active:cursor-grabbing' : ''} ${dragOverIndex === index ? 'ring-2 ring-indigo-400 ring-offset-2 scale-[1.02]' : ''}`}
+                            draggable={isAdmin}
+                            onDragStart={() => handleDragStart(index)}
+                            onDragEnter={() => handleDragEnter(index)}
+                            onDragOver={(e) => e.preventDefault()}
+                            onDragEnd={handleDragEnd}
+                        >
                             <Link href={`/department/${dept.id}`}>
                                 <div
                                     className="h-40 rounded-xl bg-white border border-slate-200 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col items-start justify-between p-5 overflow-hidden"

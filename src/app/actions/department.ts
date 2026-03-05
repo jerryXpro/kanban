@@ -140,3 +140,33 @@ export async function deleteDepartment(id: string) {
     revalidatePath('/')
     return { success: true }
 }
+
+export async function updateDepartmentOrder(
+    orderedIds: { id: string; display_order: number }[]
+): Promise<{ success?: boolean; error?: string }> {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Not authenticated' }
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile?.is_admin) return { error: 'Only admins can reorder departments' }
+
+    // Update each department's display_order
+    for (const item of orderedIds) {
+        const { error } = await supabase
+            .from('departments')
+            .update({ display_order: item.display_order })
+            .eq('id', item.id)
+
+        if (error) return { error: error.message }
+    }
+
+    revalidatePath('/')
+    return { success: true }
+}
