@@ -271,6 +271,9 @@ export async function updateCard(
         .eq('id', cardId)
 
     if (error) return { error: `更新失敗：${error.message}` }
+
+    revalidatePath('/')
+
     return { success: true }
 }
 

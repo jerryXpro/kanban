@@ -350,7 +350,8 @@ export default function KanbanBoard({ initialLists, userProfile, boardId, depart
             setLists(reorderedLists)
 
             // Async DB Update - uses the computed values safely
-            await updateListOrder(activeId, newOrder)
+            const { error } = await updateListOrder(activeId, newOrder)
+            if (error) console.error("Failed to update list order:", error)
         }
 
         // Handling Card Drop
@@ -384,13 +385,14 @@ export default function KanbanBoard({ initialLists, userProfile, boardId, depart
             // Async DB Update
             if (targetListId) {
                 // We keep it in the pending set until the db responds
-                await updateCard(activeId, undefined, undefined, undefined, undefined, targetListId, targetCardOrder)
+                const res = await updateCard(activeId, undefined, undefined, undefined, undefined, targetListId, targetCardOrder)
+                if (res.error) console.error("Failed to update card position:", res.error)
             }
 
             // Allow a small buffer before letting server take over again (so slow subscriptions don't bounce it back)
             setTimeout(() => {
                 pendingCardUpdateIdsRef.current.delete(activeId)
-            }, 1000)
+            }, 3000)
         }
     }
 
