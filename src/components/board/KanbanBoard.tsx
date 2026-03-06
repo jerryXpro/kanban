@@ -312,22 +312,19 @@ export default function KanbanBoard({ initialLists, userProfile, boardId, depart
         console.log('[DragEnd] active:', active.id, 'over:', over?.id, 'activeType:', active.data.current?.type)
         if (!over) {
             console.log('[DragEnd] No over target, returning')
+            pendingCardUpdateIdsRef.current.delete(active.id as string)
             return
         }
 
         const activeId = active.id as string
         const overId = over.id as string
-        if (activeId === overId) {
-            console.log('[DragEnd] activeId === overId, no move needed')
-            pendingCardUpdateIdsRef.current.delete(activeId)
-            return
-        }
 
         const isActiveAColumn = active.data.current?.type === 'List'
         const isActiveACard = active.data.current?.type === 'Card'
 
-        // Handling List Drop
+        // Handling List Drop (lists use activeId !== overId to detect actual movement)
         if (isActiveAColumn) {
+            if (activeId === overId) return
             if (!canAddList) {
                 alert(dict.permission_denied_list)
                 return
