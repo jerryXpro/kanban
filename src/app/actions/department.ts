@@ -82,6 +82,52 @@ export async function createDepartment(name: string, icon: string | null = null,
     return { data: deptData }
 }
 
+export async function updateListTitle(listId: string, title: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: '尚未登入' }
+
+    // Assuming updateList is a helper function or another action
+    // For now, we'll implement the direct update here.
+    const { error } = await supabase
+        .from('lists')
+        .update({ title })
+        .eq('id', listId)
+
+    if (error) {
+        console.error('Error updating list title:', error)
+        return { error: `更新列表標題失敗: ${error.message}` }
+    }
+
+    revalidatePath('/') // Revalidate to show changes
+    return { success: true }
+}
+
+export async function updateListOrder(listId: string, order: number) {
+    const supabase = await createClient()
+
+    // Validate auth
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+        return { error: 'Not authenticated' }
+    }
+
+    const { error } = await supabase
+        .from('lists')
+        .update({ order })
+        .eq('id', listId)
+
+    if (error) {
+        console.error('Error updating list order:', error)
+        return { error: `更新列表順序失敗: ${error.message}` }
+    }
+
+    // Force revalidate if needed, though realtime handles it mostly
+    revalidatePath('/')
+
+    return { success: true }
+}
+
 export async function createDefaultLists(boardId: string, departmentId: string): Promise<{ success?: boolean; error?: string }> {
     const supabase = await createClient()
 

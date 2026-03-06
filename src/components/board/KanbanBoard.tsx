@@ -26,6 +26,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useLocaleStore } from '@/store/useLocaleStore'
 import { dictionaries } from '@/lib/i18n/dictionaries'
 import { markCardsAsRead, updateCard } from '@/app/actions/cards'
+import { updateListOrder } from '@/app/actions/department'
 
 interface KanbanBoardProps {
     initialLists: ListWithCards[]
@@ -349,7 +350,7 @@ export default function KanbanBoard({ initialLists, userProfile, boardId, depart
             setLists(reorderedLists)
 
             // Async DB Update - uses the computed values safely
-            await supabase.from('lists').update({ order: newOrder }).eq('id', activeId)
+            await updateListOrder(activeId, newOrder)
         }
 
         // Handling Card Drop
