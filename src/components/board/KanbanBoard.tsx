@@ -354,29 +354,34 @@ export default function KanbanBoard({ initialLists, userProfile, boardId, depart
 
         // Handling Card Drop
         if (isActiveACard) {
-            let targetListId = ''
-            let targetCardOrder = 0
-            let shouldUpdateDB = false
+            const listWithCard = findListByCardId(activeId, lists)
+            if (!listWithCard || listWithCard.is_global || listWithCard.list_type === 'anomaly') {
+                pendingCardUpdateIdsRef.current.delete(activeId)
+                return
+            }
 
+            const cardIndex = listWithCard.cards.findIndex(c => c.id === activeId)
+            const targetListId = listWithCard.id
+            const targetCardOrder = calculateNewOrder(listWithCard.cards, cardIndex)
+
+            // Update local state properly, ensuring deep clone for the changed card
             setLists((currentLists) => {
-                // Find where the card ended up (from handleDragOver optimistic updates)
-                const listWithCard = findListByCardId(activeId, currentLists)
-                if (!listWithCard || listWithCard.is_global || listWithCard.list_type === 'anomaly') return currentLists
+                const newListWithCard = findListByCardId(activeId, currentLists)
+                if (!newListWithCard) return currentLists
 
-                const cardIndex = listWithCard.cards.findIndex(c => c.id === activeId)
-                targetListId = listWithCard.id
-                targetCardOrder = calculateNewOrder(listWithCard.cards, cardIndex)
+                const newCardIndex = newListWithCard.cards.findIndex(c => c.id === activeId)
+                const newCards = [...newListWithCard.cards]
+                newCards[newCardIndex] = { ...newCards[newCardIndex], order: targetCardOrder }
 
                 const newLists = [...currentLists]
-                const listIndex = newLists.findIndex(l => l.id === listWithCard.id)
-                newLists[listIndex].cards[cardIndex].order = targetCardOrder
+                const listIndex = newLists.findIndex(l => l.id === newListWithCard.id)
+                newLists[listIndex] = { ...newListWithCard, cards: newCards }
 
-                shouldUpdateDB = true
                 return newLists
             })
 
             // Async DB Update
-            if (shouldUpdateDB && targetListId) {
+            if (targetListId) {
                 // We keep it in the pending set until the db responds
                 await supabase.from('cards').update({ list_id: targetListId, order: targetCardOrder }).eq('id', activeId)
             }
