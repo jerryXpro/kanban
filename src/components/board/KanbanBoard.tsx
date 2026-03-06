@@ -356,40 +356,43 @@ export default function KanbanBoard({ initialLists, userProfile, boardId, depart
 
         // Handling Card Drop
         if (isActiveACard) {
-            const listWithCard = findListByCardId(activeId, lists)
-            if (!listWithCard || listWithCard.is_global || listWithCard.list_type === 'anomaly') {
-                pendingCardUpdateIdsRef.current.delete(activeId)
-                return
-            }
+            // Because handleDragOver updates the lists state, the 'lists' variable here might be stale.
+            // We need to safely calculate the final list ID and order using a functional update, 
+            // but we can't await inside setLists. We'll extract the needed info and update state simultaneously.
+            let finalTargetListId: string | undefined
+            let finalTargetCardOrder: number | undefined
 
-            const cardIndex = listWithCard.cards.findIndex(c => c.id === activeId)
-            const targetListId = listWithCard.id
-            const targetCardOrder = calculateNewOrder(listWithCard.cards, cardIndex)
-
-            // Update local state properly, ensuring deep clone for the changed card
             setLists((currentLists) => {
-                const newListWithCard = findListByCardId(activeId, currentLists)
-                if (!newListWithCard) return currentLists
+                const listWithCard = findListByCardId(activeId, currentLists)
 
-                const newCardIndex = newListWithCard.cards.findIndex(c => c.id === activeId)
-                const newCards = [...newListWithCard.cards]
-                newCards[newCardIndex] = { ...newCards[newCardIndex], order: targetCardOrder }
+                if (!listWithCard || listWithCard.is_global || listWithCard.list_type === 'anomaly') {
+                    return currentLists
+                }
+
+                const cardIndex = listWithCard.cards.findIndex(c => c.id === activeId)
+                finalTargetListId = listWithCard.id
+                finalTargetCardOrder = calculateNewOrder(listWithCard.cards, cardIndex)
+
+                // Update the card's order internally within our optimistic state
+                const newCards = [...listWithCard.cards]
+                newCards[cardIndex] = { ...newCards[cardIndex], order: finalTargetCardOrder }
 
                 const newLists = [...currentLists]
-                const listIndex = newLists.findIndex(l => l.id === newListWithCard.id)
-                newLists[listIndex] = { ...newListWithCard, cards: newCards }
+                const listIndex = newLists.findIndex(l => l.id === listWithCard.id)
+                newLists[listIndex] = { ...listWithCard, cards: newCards }
 
                 return newLists
             })
 
-            // Async DB Update
-            if (targetListId) {
-                // We keep it in the pending set until the db responds
-                const res = await updateCard(activeId, undefined, undefined, undefined, undefined, targetListId, targetCardOrder)
-                if (res.error) console.error("Failed to update card position:", res.error)
+            // Run DB update immediately if we captured the new coordinates
+            if (finalTargetListId !== undefined && finalTargetCardOrder !== undefined) {
+                const res = await updateCard(activeId, undefined, undefined, undefined, undefined, finalTargetListId, finalTargetCardOrder)
+                if (res?.error) console.error("Failed to update card position:", res.error)
+            } else {
+                // If it didn't move or couldn't determine, just clear pending
+                pendingCardUpdateIdsRef.current.delete(activeId)
             }
 
-            // Allow a small buffer before letting server take over again (so slow subscriptions don't bounce it back)
             setTimeout(() => {
                 pendingCardUpdateIdsRef.current.delete(activeId)
             }, 3000)
