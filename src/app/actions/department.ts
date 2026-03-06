@@ -112,7 +112,11 @@ export async function updateListOrder(listId: string, order: number) {
         return { error: 'Not authenticated' }
     }
 
-    const { error } = await supabase
+    // Use admin client to bypass RLS for list reordering
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    const adminClient = createAdminClient()
+
+    const { error } = await adminClient
         .from('lists')
         .update({ order })
         .eq('id', listId)
@@ -121,9 +125,6 @@ export async function updateListOrder(listId: string, order: number) {
         console.error('Error updating list order:', error)
         return { error: `更新列表順序失敗: ${error.message}` }
     }
-
-    // Force revalidate if needed, though realtime handles it mostly
-    revalidatePath('/')
 
     return { success: true }
 }

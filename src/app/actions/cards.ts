@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 
 export async function reportAnomaly(currentDeptId: string, targetDeptIds: string[], title: string, description: string) {
@@ -273,6 +274,36 @@ export async function updateCard(
     if (error) return { error: `更新失敗：${error.message}` }
 
     revalidatePath('/')
+
+    return { success: true }
+}
+
+/**
+ * Update a card's position (list_id and order) via admin client,
+ * completely bypassing RLS. Used exclusively for drag-and-drop reordering.
+ */
+export async function updateCardPosition(
+    cardId: string,
+    listId: string,
+    order: number
+) {
+    // Verify the caller is authenticated first (using normal session client)
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: '尚未登入' }
+
+    // Use admin client to bypass RLS for the actual update
+    const adminClient = createAdminClient()
+
+    const { error } = await adminClient
+        .from('cards')
+        .update({ list_id: listId, order, updated_at: new Date().toISOString() })
+        .eq('id', cardId)
+
+    if (error) {
+        console.error('Admin updateCardPosition failed:', error)
+        return { error: `更新卡片位置失敗：${error.message}` }
+    }
 
     return { success: true }
 }

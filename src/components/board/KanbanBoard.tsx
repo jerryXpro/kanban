@@ -25,7 +25,7 @@ import KanbanCard from './KanbanCard'
 import { createClient } from '@/lib/supabase/client'
 import { useLocaleStore } from '@/store/useLocaleStore'
 import { dictionaries } from '@/lib/i18n/dictionaries'
-import { markCardsAsRead, updateCard } from '@/app/actions/cards'
+import { markCardsAsRead, updateCardPosition } from '@/app/actions/cards'
 import { updateListOrder } from '@/app/actions/department'
 
 interface KanbanBoardProps {
@@ -386,7 +386,7 @@ export default function KanbanBoard({ initialLists, userProfile, boardId, depart
 
             // Run DB update immediately if we captured the new coordinates
             if (finalTargetListId !== undefined && finalTargetCardOrder !== undefined) {
-                const res = await updateCard(activeId, undefined, undefined, undefined, undefined, finalTargetListId, finalTargetCardOrder)
+                const res = await updateCardPosition(activeId, finalTargetListId, finalTargetCardOrder)
                 if (res?.error) console.error("Failed to update card position:", res.error)
             } else {
                 // If it didn't move or couldn't determine, just clear pending
