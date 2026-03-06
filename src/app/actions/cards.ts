@@ -205,10 +205,12 @@ export async function reportAnomaly(currentDeptId: string, targetDeptIds: string
  */
 export async function updateCard(
     cardId: string,
-    title: string,
-    description: string,
+    title?: string,
+    description?: string,
     assignedUserId?: string | null,
-    assignedDeptId?: string | null
+    assignedDeptId?: string | null,
+    listId?: string,
+    order?: number
 ) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -240,12 +242,15 @@ export async function updateCard(
     if (!canModify) return { error: '無權限編輯此卡片 (需發送單位或管理員權限)' }
 
     let updatePayload: any = {
-        title: title.trim(),
-        description: description.trim(),
         updated_at: new Date().toISOString(),
-        assigned_user_id: assignedUserId !== undefined && assignedUserId !== 'none' ? assignedUserId : null,
-        assigned_department_id: assignedDeptId !== undefined && assignedDeptId !== 'none' ? assignedDeptId : null
     }
+
+    if (title !== undefined) updatePayload.title = title.trim();
+    if (description !== undefined) updatePayload.description = description.trim();
+    if (assignedUserId !== undefined) updatePayload.assigned_user_id = assignedUserId !== 'none' ? assignedUserId : null;
+    if (assignedDeptId !== undefined) updatePayload.assigned_department_id = assignedDeptId !== 'none' ? assignedDeptId : null;
+    if (listId !== undefined) updatePayload.list_id = listId;
+    if (order !== undefined) updatePayload.order = order;
 
     if (updatePayload.assigned_department_id && updatePayload.assigned_department_id !== currentCard?.assigned_department_id) {
         const { data: boardData } = await supabase.from('boards').select('id').eq('department_id', updatePayload.assigned_department_id).single()

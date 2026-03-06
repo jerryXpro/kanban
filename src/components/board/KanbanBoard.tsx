@@ -25,7 +25,7 @@ import KanbanCard from './KanbanCard'
 import { createClient } from '@/lib/supabase/client'
 import { useLocaleStore } from '@/store/useLocaleStore'
 import { dictionaries } from '@/lib/i18n/dictionaries'
-import { markCardsAsRead } from '@/app/actions/cards'
+import { markCardsAsRead, updateCard } from '@/app/actions/cards'
 
 interface KanbanBoardProps {
     initialLists: ListWithCards[]
@@ -383,7 +383,7 @@ export default function KanbanBoard({ initialLists, userProfile, boardId, depart
             // Async DB Update
             if (targetListId) {
                 // We keep it in the pending set until the db responds
-                await supabase.from('cards').update({ list_id: targetListId, order: targetCardOrder }).eq('id', activeId)
+                await updateCard(activeId, undefined, undefined, undefined, undefined, targetListId, targetCardOrder)
             }
 
             // Allow a small buffer before letting server take over again (so slow subscriptions don't bounce it back)
