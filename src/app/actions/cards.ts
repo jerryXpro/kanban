@@ -287,24 +287,39 @@ export async function updateCardPosition(
     listId: string,
     order: number
 ) {
+    console.log('[updateCardPosition] Called with:', { cardId, listId, order })
+
     // Verify the caller is authenticated first (using normal session client)
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: '尚未登入' }
+    if (!user) {
+        console.log('[updateCardPosition] No user session found')
+        return { error: '尚未登入' }
+    }
+    console.log('[updateCardPosition] User authenticated:', user.id)
 
     // Use admin client to bypass RLS for the actual update
     const adminClient = createAdminClient()
 
-    const { error } = await adminClient
+    const { data, error, count } = await adminClient
         .from('cards')
         .update({ list_id: listId, order, updated_at: new Date().toISOString() })
         .eq('id', cardId)
+        .select()
+
+    console.log('[updateCardPosition] Update result:', { data, error, count })
 
     if (error) {
         console.error('Admin updateCardPosition failed:', error)
         return { error: `更新卡片位置失敗：${error.message}` }
     }
 
+    if (!data || data.length === 0) {
+        console.error('[updateCardPosition] No rows affected! Card ID may not exist:', cardId)
+        return { error: '更新失敗：卡片不存在' }
+    }
+
+    console.log('[updateCardPosition] Success! Updated card:', data[0]?.id)
     return { success: true }
 }
 

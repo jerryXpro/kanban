@@ -309,11 +309,19 @@ export default function KanbanBoard({ initialLists, userProfile, boardId, depart
         setActiveList(null)
 
         const { active, over } = event
-        if (!over) return
+        console.log('[DragEnd] active:', active.id, 'over:', over?.id, 'activeType:', active.data.current?.type)
+        if (!over) {
+            console.log('[DragEnd] No over target, returning')
+            return
+        }
 
         const activeId = active.id as string
         const overId = over.id as string
-        if (activeId === overId) return
+        if (activeId === overId) {
+            console.log('[DragEnd] activeId === overId, no move needed')
+            pendingCardUpdateIdsRef.current.delete(activeId)
+            return
+        }
 
         const isActiveAColumn = active.data.current?.type === 'List'
         const isActiveACard = active.data.current?.type === 'Card'
@@ -325,7 +333,6 @@ export default function KanbanBoard({ initialLists, userProfile, boardId, depart
                 return
             }
 
-            // Compute new list order OUTSIDE the setState callback so we can safely use it for DB update
             const currentLists = lists
             const activeListIndex = currentLists.findIndex((col) => col.id === activeId)
 
@@ -340,7 +347,6 @@ export default function KanbanBoard({ initialLists, userProfile, boardId, depart
 
             if (activeListIndex === -1 || overListIndex === -1) return
 
-            // Prevent dragging global/anomaly list or moving things before them
             if (currentLists[activeListIndex]?.is_global || currentLists[activeListIndex]?.list_type === 'anomaly' || (overListIndex === 0 && currentLists[0]?.is_global)) return
 
             const reorderedLists = arrayMove(currentLists, activeListIndex, overListIndex)
@@ -349,31 +355,32 @@ export default function KanbanBoard({ initialLists, userProfile, boardId, depart
 
             setLists(reorderedLists)
 
-            // Async DB Update - uses the computed values safely
             const { error } = await updateListOrder(activeId, newOrder)
             if (error) console.error("Failed to update list order:", error)
+            else console.log('[DragEnd] List order updated successfully')
         }
 
         // Handling Card Drop
         if (isActiveACard) {
-            // Because handleDragOver updates the lists state, the 'lists' variable here might be stale.
-            // We need to safely calculate the final list ID and order using a functional update, 
-            // but we can't await inside setLists. We'll extract the needed info and update state simultaneously.
+            console.log('[DragEnd] Card drop detected for card:', activeId)
+
             let finalTargetListId: string | undefined
             let finalTargetCardOrder: number | undefined
 
             setLists((currentLists) => {
                 const listWithCard = findListByCardId(activeId, currentLists)
+                console.log('[DragEnd/setState] Found card in list:', listWithCard?.id, 'is_global:', listWithCard?.is_global, 'list_type:', listWithCard?.list_type)
 
                 if (!listWithCard || listWithCard.is_global || listWithCard.list_type === 'anomaly') {
+                    console.log('[DragEnd/setState] Skipping: card in global/anomaly list or not found')
                     return currentLists
                 }
 
                 const cardIndex = listWithCard.cards.findIndex(c => c.id === activeId)
                 finalTargetListId = listWithCard.id
                 finalTargetCardOrder = calculateNewOrder(listWithCard.cards, cardIndex)
+                console.log('[DragEnd/setState] Computed:', { finalTargetListId, finalTargetCardOrder, cardIndex, totalCards: listWithCard.cards.length })
 
-                // Update the card's order internally within our optimistic state
                 const newCards = [...listWithCard.cards]
                 newCards[cardIndex] = { ...newCards[cardIndex], order: finalTargetCardOrder }
 
@@ -384,12 +391,15 @@ export default function KanbanBoard({ initialLists, userProfile, boardId, depart
                 return newLists
             })
 
-            // Run DB update immediately if we captured the new coordinates
+            console.log('[DragEnd] After setState - finalTargetListId:', finalTargetListId, 'finalTargetCardOrder:', finalTargetCardOrder)
+
             if (finalTargetListId !== undefined && finalTargetCardOrder !== undefined) {
+                console.log('[DragEnd] Calling updateCardPosition...')
                 const res = await updateCardPosition(activeId, finalTargetListId, finalTargetCardOrder)
+                console.log('[DragEnd] updateCardPosition result:', res)
                 if (res?.error) console.error("Failed to update card position:", res.error)
             } else {
-                // If it didn't move or couldn't determine, just clear pending
+                console.warn('[DragEnd] finalTargetListId or finalTargetCardOrder is undefined! Card position NOT saved.')
                 pendingCardUpdateIdsRef.current.delete(activeId)
             }
 
