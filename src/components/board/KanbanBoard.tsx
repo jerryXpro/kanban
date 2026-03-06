@@ -46,6 +46,9 @@ const calculateNewOrder = (items: { order: number }[], newIndex: number) => {
 
 export default function KanbanBoard({ initialLists, userProfile, boardId, departmentId, departments = [], systemUsers = [] }: KanbanBoardProps) {
     const [lists, setLists] = useState<ListWithCards[]>(initialLists)
+    const listsRef = useRef<ListWithCards[]>(initialLists)
+    // Keep listsRef in sync with the latest lists state
+    useEffect(() => { listsRef.current = lists }, [lists])
     const [activeCard, setActiveCard] = useState<Card | null>(null)
     const [activeList, setActiveList] = useState<ListWithCards | null>(null)
     const [isMounted, setIsMounted] = useState(false)
@@ -357,48 +360,41 @@ export default function KanbanBoard({ initialLists, userProfile, boardId, depart
             else console.log('[DragEnd] List order updated successfully')
         }
 
-        // Handling Card Drop
+        // Handling Card Drop — read from listsRef.current for latest state (React 18 batches setLists)
         if (isActiveACard) {
             console.log('[DragEnd] Card drop detected for card:', activeId)
 
-            let finalTargetListId: string | undefined
-            let finalTargetCardOrder: number | undefined
+            // Read the LATEST state directly from the ref
+            const currentLists = listsRef.current
+            const listWithCard = findListByCardId(activeId, currentLists)
+            console.log('[DragEnd] Found card in list:', listWithCard?.id, 'is_global:', listWithCard?.is_global, 'list_type:', listWithCard?.list_type)
 
-            setLists((currentLists) => {
-                const listWithCard = findListByCardId(activeId, currentLists)
-                console.log('[DragEnd/setState] Found card in list:', listWithCard?.id, 'is_global:', listWithCard?.is_global, 'list_type:', listWithCard?.list_type)
+            if (!listWithCard || listWithCard.is_global || listWithCard.list_type === 'anomaly') {
+                console.log('[DragEnd] Skipping: card in global/anomaly list or not found')
+                pendingCardUpdateIdsRef.current.delete(activeId)
+                return
+            }
 
-                if (!listWithCard || listWithCard.is_global || listWithCard.list_type === 'anomaly') {
-                    console.log('[DragEnd/setState] Skipping: card in global/anomaly list or not found')
-                    return currentLists
-                }
+            const cardIndex = listWithCard.cards.findIndex(c => c.id === activeId)
+            const finalTargetListId = listWithCard.id
+            const finalTargetCardOrder = calculateNewOrder(listWithCard.cards, cardIndex)
+            console.log('[DragEnd] Computed target:', { finalTargetListId, finalTargetCardOrder, cardIndex, totalCards: listWithCard.cards.length })
 
-                const cardIndex = listWithCard.cards.findIndex(c => c.id === activeId)
-                finalTargetListId = listWithCard.id
-                finalTargetCardOrder = calculateNewOrder(listWithCard.cards, cardIndex)
-                console.log('[DragEnd/setState] Computed:', { finalTargetListId, finalTargetCardOrder, cardIndex, totalCards: listWithCard.cards.length })
-
-                const newCards = [...listWithCard.cards]
-                newCards[cardIndex] = { ...newCards[cardIndex], order: finalTargetCardOrder }
-
-                const newLists = [...currentLists]
-                const listIndex = newLists.findIndex(l => l.id === listWithCard.id)
-                newLists[listIndex] = { ...listWithCard, cards: newCards }
-
-                return newLists
+            // Update local state optimistically
+            setLists((prev) => {
+                const list = findListByCardId(activeId, prev)
+                if (!list) return prev
+                const idx = list.cards.findIndex(c => c.id === activeId)
+                const newCards = [...list.cards]
+                newCards[idx] = { ...newCards[idx], order: finalTargetCardOrder, list_id: finalTargetListId }
+                return prev.map(l => l.id === list.id ? { ...list, cards: newCards } : l)
             })
 
-            console.log('[DragEnd] After setState - finalTargetListId:', finalTargetListId, 'finalTargetCardOrder:', finalTargetCardOrder)
-
-            if (finalTargetListId !== undefined && finalTargetCardOrder !== undefined) {
-                console.log('[DragEnd] Calling updateCardPosition...')
-                const res = await updateCardPosition(activeId, finalTargetListId, finalTargetCardOrder)
-                console.log('[DragEnd] updateCardPosition result:', res)
-                if (res?.error) console.error("Failed to update card position:", res.error)
-            } else {
-                console.warn('[DragEnd] finalTargetListId or finalTargetCardOrder is undefined! Card position NOT saved.')
-                pendingCardUpdateIdsRef.current.delete(activeId)
-            }
+            // Persist to DB
+            console.log('[DragEnd] Calling updateCardPosition...')
+            const res = await updateCardPosition(activeId, finalTargetListId, finalTargetCardOrder)
+            console.log('[DragEnd] updateCardPosition result:', res)
+            if (res?.error) console.error('Failed to update card position:', res.error)
 
             setTimeout(() => {
                 pendingCardUpdateIdsRef.current.delete(activeId)
