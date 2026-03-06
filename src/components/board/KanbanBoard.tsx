@@ -45,10 +45,17 @@ const calculateNewOrder = (items: { order: number }[], newIndex: number) => {
 }
 
 export default function KanbanBoard({ initialLists, userProfile, boardId, departmentId, departments = [], systemUsers = [] }: KanbanBoardProps) {
-    const [lists, setLists] = useState<ListWithCards[]>(initialLists)
+    const [lists, _setLists] = useState<ListWithCards[]>(initialLists)
     const listsRef = useRef<ListWithCards[]>(initialLists)
-    // Keep listsRef in sync with the latest lists state
-    useEffect(() => { listsRef.current = lists }, [lists])
+    // Wrapper that updates BOTH React state AND the ref synchronously,
+    // so handleDragEnd can always read the freshest state from listsRef.current.
+    const setLists = useCallback((updater: ListWithCards[] | ((prev: ListWithCards[]) => ListWithCards[])) => {
+        _setLists((prev) => {
+            const next = typeof updater === 'function' ? updater(prev) : updater
+            listsRef.current = next
+            return next
+        })
+    }, [])
     const [activeCard, setActiveCard] = useState<Card | null>(null)
     const [activeList, setActiveList] = useState<ListWithCards | null>(null)
     const [isMounted, setIsMounted] = useState(false)
