@@ -254,7 +254,7 @@ export default function DepartmentManager({
                                 style={{ backgroundColor: `${dept.color || '#4F46E5'}15`, color: dept.color || '#4F46E5' }}
                             >
                                 {dept.custom_icon_url ? (
-                                    <img src={dept.custom_icon_url} alt={dept.name} className="h-8 w-auto object-contain" />
+                                    <img src={dept.custom_icon_url} alt={dept.name} className="max-h-8 max-w-full object-contain" />
                                 ) : (
                                     <IconComponent className="w-6 h-6" />
                                 )}
@@ -417,7 +417,7 @@ export default function DepartmentManager({
                             />
                             {createCustomIconUrl && (
                                 <div className="flex items-center gap-2 my-2">
-                                    <img src={createCustomIconUrl} alt="Preview" className="h-8 w-auto max-w-[200px] object-contain border rounded" />
+                                    <img src={createCustomIconUrl} alt="Preview" className="max-h-8 max-w-[200px] object-contain border rounded" />
                                     <Button
                                         variant="ghost"
                                         size="sm"
@@ -547,7 +547,7 @@ export default function DepartmentManager({
                             />
                             {editCustomIconUrl && (
                                 <div className="flex items-center gap-2 my-2">
-                                    <img src={editCustomIconUrl} alt="Preview" className="h-8 w-auto max-w-[200px] object-contain border rounded" />
+                                    <img src={editCustomIconUrl} alt="Preview" className="max-h-8 max-w-[200px] object-contain border rounded" />
                                     <Button
                                         variant="ghost"
                                         size="sm"
