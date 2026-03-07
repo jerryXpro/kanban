@@ -243,13 +243,10 @@ export default function DepartmentManager({
                 onDragOver={(e) => e.preventDefault()}
                 onDragEnd={handleDragEnd}
             >
-                <Link href={dept.is_group ? '#' : `/department/${dept.id}`}>
+                <Link href={`/department/${dept.id}`}>
                     <div
                         className={`rounded-xl bg-white border border-slate-200 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col items-start justify-between p-5 overflow-hidden ${isChild ? 'h-32' : 'h-40'} ${dept.is_group ? 'bg-slate-50 border-dashed border-2' : ''}`}
                         style={{ borderTopWidth: '4px', borderTopColor: dept.color || '#4F46E5' }}
-                        onClick={(e) => {
-                            if (dept.is_group) e.preventDefault();
-                        }}
                     >
                         <div className="flex justify-between w-full items-start">
                             <div
