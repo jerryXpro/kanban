@@ -429,7 +429,7 @@ export default function DepartmentManager({
                                         }}
                                     >
                                         <Trash2 className="w-4 h-4 mr-1" />
-                                        {dict.delete_dept || 'Clear'}
+                                        {dict.clear || 'Clear'}
                                     </Button>
                                 </div>
                             )}
@@ -559,7 +559,7 @@ export default function DepartmentManager({
                                         }}
                                     >
                                         <Trash2 className="w-4 h-4 mr-1" />
-                                        {dict.delete_dept || 'Clear'}
+                                        {dict.clear || 'Clear'}
                                     </Button>
                                 </div>
                             )}
