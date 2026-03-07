@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { isDepartmentManager } from '@/lib/api/admin'
 
-export async function createDepartment(name: string, icon: string | null = null, parentIds: string[] = [], color: string | null = null) {
+export async function createDepartment(name: string, icon: string | null = null, parentIds: string[] = [], color: string | null = null, customIconUrl: string | null = null, isGroup: boolean = false) {
     const supabase = await createClient()
 
     // 1. Verify admin
@@ -36,7 +36,7 @@ export async function createDepartment(name: string, icon: string | null = null,
     // 2. Insert department
     const { data: deptData, error: deptError } = await supabase
         .from('departments')
-        .insert({ name, icon, parent_ids: parentIds, color })
+        .insert({ name, icon, parent_ids: parentIds, color, custom_icon_url: customIconUrl, is_group: isGroup })
         .select()
         .single()
 
@@ -186,7 +186,7 @@ export async function initializeBoard(departmentId: string, departmentName: stri
     return { success: true }
 }
 
-export async function updateDepartment(id: string, newName: string, icon: string | null = null, parentIds: string[] = [], color: string | null = null) {
+export async function updateDepartment(id: string, newName: string, icon: string | null = null, parentIds: string[] = [], color: string | null = null, customIconUrl: string | null = null, isGroup: boolean = false) {
     const supabase = await createClient()
 
     // Use the hierarchical manager check
@@ -197,7 +197,7 @@ export async function updateDepartment(id: string, newName: string, icon: string
     // 2. Update department
     const { data, error } = await supabase
         .from('departments')
-        .update({ name: newName, icon, parent_ids: parentIds, color })
+        .update({ name: newName, icon, parent_ids: parentIds, color, custom_icon_url: customIconUrl, is_group: isGroup })
         .eq('id', id)
         .select()
         .single()
@@ -268,3 +268,42 @@ export async function updateDepartmentOrder(
     revalidatePath('/')
     return { success: true }
 }
+
+
+export async function uploadDepartmentIcon(formData: FormData) {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Not authenticated' }
+
+    const file = formData.get('file') as File
+    if (!file) return { error: 'No file provided' }
+
+    // Validate size (e.g. max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        return { error: 'File size exceeds 5MB limit' }
+    }
+
+    const fileExt = file.name.split('.').pop() || 'png'
+    const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`
+    const filePath = `${user.id}/${fileName}`
+
+    const { error } = await supabase.storage
+        .from('department-icons')
+        .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: false
+        })
+
+    if (error) {
+        console.error('Storage upload error:', error)
+        return { error: error.message }
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+        .from('department-icons')
+        .getPublicUrl(filePath)
+
+    return { data: publicUrl }
+}
+

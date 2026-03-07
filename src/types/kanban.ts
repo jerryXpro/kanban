@@ -2,10 +2,13 @@ export type Department = {
     id: string
     name: string
     icon: string | null
+    custom_icon_url?: string | null
+    is_group?: boolean
     parent_ids: string[] | null
     color?: string | null
     created_at: string
     has_password?: boolean
+    password?: string | null
 }
 
 export type Profile = {

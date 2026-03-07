@@ -5,7 +5,7 @@ import { Department } from '@/types/kanban'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { MoreHorizontal, Pencil, Trash2, Lock, KeyRound } from 'lucide-react'
-import { createDepartment, updateDepartment, deleteDepartment, updateDepartmentOrder } from '@/app/actions/department'
+import { createDepartment, updateDepartment, deleteDepartment, updateDepartmentOrder, uploadDepartmentIcon } from '@/app/actions/department'
 import { updateDepartmentPassword } from '@/app/actions/departmentPassword'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
@@ -30,6 +30,7 @@ import {
 
 import { useLocaleStore } from '@/store/useLocaleStore'
 import { dictionaries } from '@/lib/i18n/dictionaries'
+import * as Switch from '@radix-ui/react-switch'
 
 const AVAILABLE_ICONS = ['Briefcase', 'Building2', 'Factory', 'Monitor', 'Cpu', 'Users', 'Wrench', 'Truck', 'Zap', 'Shield']
 
@@ -61,6 +62,8 @@ export default function DepartmentManager({
     const [isCreateOpen, setIsCreateOpen] = useState(false)
     const [createName, setCreateName] = useState('')
     const [createIcon, setCreateIcon] = useState('Briefcase')
+    const [createCustomIconUrl, setCreateCustomIconUrl] = useState('')
+    const [createIsGroup, setCreateIsGroup] = useState(false)
     const [createParentIds, setCreateParentIds] = useState<string[]>([])
     const [createColor, setCreateColor] = useState('#4F46E5')
     const [isCreating, setIsCreating] = useState(false)
@@ -68,6 +71,8 @@ export default function DepartmentManager({
     const [editingDept, setEditingDept] = useState<Department | null>(null)
     const [editName, setEditName] = useState('')
     const [editIcon, setEditIcon] = useState('Briefcase')
+    const [editCustomIconUrl, setEditCustomIconUrl] = useState('')
+    const [editIsGroup, setEditIsGroup] = useState(false)
     const [editParentIds, setEditParentIds] = useState<string[]>([])
     const [editColor, setEditColor] = useState('#4F46E5')
     const [isEditing, setIsEditing] = useState(false)
@@ -125,7 +130,18 @@ export default function DepartmentManager({
         if (!createName.trim()) return
         setIsCreating(true)
         try {
-            const res = await createDepartment(createName.trim(), createIcon, createParentIds, createColor)
+            let finalIconUrl = createCustomIconUrl
+            // If they selected a file, upload it here
+            const fileInput = document.getElementById('create-icon-upload') as HTMLInputElement
+            if (fileInput?.files?.[0]) {
+                const formData = new FormData()
+                formData.append('file', fileInput.files[0])
+                const { data, error } = await uploadDepartmentIcon(formData)
+                if (data) finalIconUrl = data
+                else if (error) toast.error("上傳失敗: " + error)
+            }
+
+            const res = await createDepartment(createName.trim(), createIcon, createParentIds, createColor, finalIconUrl, createIsGroup)
             if (res?.error) {
                 toast.error(res.error)
             } else if (res?.data) {
@@ -133,6 +149,8 @@ export default function DepartmentManager({
                 setDepartments([...departments, res.data as Department])
                 setIsCreateOpen(false)
                 setCreateName('')
+                setCreateCustomIconUrl('')
+                setCreateIsGroup(false)
                 router.refresh()
             }
         } catch (error: any) {
@@ -147,13 +165,23 @@ export default function DepartmentManager({
         if (!editingDept || !editName.trim()) return
         setIsEditing(true)
         try {
-            const res = await updateDepartment(editingDept.id, editName.trim(), editIcon, editParentIds, editColor)
+            let finalIconUrl = editCustomIconUrl
+            const fileInput = document.getElementById('edit-icon-upload') as HTMLInputElement
+            if (fileInput?.files?.[0]) {
+                const formData = new FormData()
+                formData.append('file', fileInput.files[0])
+                const { data, error } = await uploadDepartmentIcon(formData)
+                if (data) finalIconUrl = data
+                else if (error) toast.error("上傳失敗: " + error)
+            }
+
+            const res = await updateDepartment(editingDept.id, editName.trim(), editIcon, editParentIds, editColor, finalIconUrl, editIsGroup)
             if (res?.error) {
                 console.error('Update Dept Error:', res.error)
                 toast.error(res.error)
             } else {
                 toast.success(dict.saving)
-                setDepartments(departments.map(d => d.id === editingDept.id ? { ...d, name: editName.trim(), icon: editIcon, parent_ids: editParentIds, color: editColor } : d))
+                setDepartments(departments.map(d => d.id === editingDept.id ? { ...d, name: editName.trim(), icon: editIcon, parent_ids: editParentIds, color: editColor, custom_icon_url: finalIconUrl, is_group: editIsGroup } : d))
                 setEditingDept(null)
                 setEditName('')
                 router.refresh()
@@ -202,6 +230,101 @@ export default function DepartmentManager({
         }
     }
 
+
+
+    const renderDepartmentCard = (dept: Department, index: number, isManager: boolean, isChild: boolean = false) => {
+        const IconComponent = (LucideIcons as any)[dept.icon || 'Briefcase'] || LucideIcons.Briefcase
+
+        return (
+            <div key={dept.id} className="relative group"
+                draggable
+                onDragStart={() => handleDragStart(index)}
+                onDragEnter={() => handleDragEnter(index)}
+                onDragOver={(e) => e.preventDefault()}
+                onDragEnd={handleDragEnd}
+            >
+                <Link href={dept.is_group ? '#' : `/department/${dept.id}`}>
+                    <div
+                        className={`rounded-xl bg-white border border-slate-200 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col items-start justify-between p-5 overflow-hidden ${isChild ? 'h-32' : 'h-40'} ${dept.is_group ? 'bg-slate-50 border-dashed border-2' : ''}`}
+                        style={{ borderTopWidth: '4px', borderTopColor: dept.color || '#4F46E5' }}
+                        onClick={(e) => {
+                            if (dept.is_group) e.preventDefault();
+                        }}
+                    >
+                        <div className="flex justify-between w-full items-start">
+                            <div
+                                className="w-12 h-12 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform"
+                                style={{ backgroundColor: `${dept.color || '#4F46E5'}15`, color: dept.color || '#4F46E5' }}
+                            >
+                                {dept.custom_icon_url ? (
+                                    <img src={dept.custom_icon_url} alt={dept.name} className="w-8 h-8 object-contain" />
+                                ) : (
+                                    <IconComponent className="w-6 h-6" />
+                                )}
+                            </div>
+                            {dept.is_group && (
+                                <span className="text-xs font-semibold text-indigo-600 bg-indigo-100 px-2 py-1 rounded">Group</span>
+                            )}
+                            {!dept.is_group && dept.parent_ids && dept.parent_ids.length > 0 && !isChild && (
+                                <div className="flex flex-col gap-1 items-end max-w-[120px]">
+                                    {dept.parent_ids.map(pid => {
+                                        const pDept = departments.find(d => d.id === pid)
+                                        if (!pDept) return null
+                                        return (
+                                            <span key={pid} className="text-[10px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md truncate max-w-full" title={`Child of ${pDept.name}`}>
+                                                ↳ {pDept.name}
+                                            </span>
+                                        )
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                        <h3 className={`font-semibold text-slate-800 pr-8 line-clamp-2 mt-4 ${isChild ? 'text-base' : 'text-lg'}`}>{dept.name}</h3>
+                    </div>
+                </Link >
+                {/* Admin Controls overlay */}
+                {
+                    isManager && (
+                        <div className="absolute top-3 right-3 text-slate-400">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-slate-800 bg-white shadow-sm border border-slate-200">
+                                        <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => {
+                                        setEditingDept(dept)
+                                        setEditName(dept.name)
+                                        setEditIcon(dept.icon || 'Briefcase')
+                                        setEditParentIds(dept.parent_ids || [])
+                                        setEditColor(dept.color || '#4F46E5')
+                                        setEditIsGroup(dept.is_group || false)
+                                        setEditCustomIconUrl(dept.custom_icon_url || '')
+                                    }}>
+                                        <Pencil className="h-4 w-4 mr-2" />
+                                        {dict.edit_dept}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => {
+                                        setPasswordDept(dept)
+                                        setNewPassword('')
+                                    }}>
+                                        <KeyRound className="h-4 w-4 mr-2" />
+                                        設定密碼
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem className="text-red-600 focus:bg-red-50 focus:text-red-700" onClick={() => setDeletingDept(dept)}>
+                                        <Trash2 className="h-4 w-4 mr-2" />
+                                        {dict.delete_dept}
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
+                    )
+                }
+            </div >
+        )
+    }
+
     return (
         <div className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full">
             <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -217,88 +340,26 @@ export default function DepartmentManager({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {departments.map((dept, index) => {
-                    const IconComponent = (LucideIcons as any)[dept.icon || 'Briefcase'] as LucideIcon || LucideIcons.Briefcase;
-                    const isManager = isAdmin || (manageableDepartmentIds && manageableDepartmentIds.includes(dept.id));
-
-                    return (
-                        <div
-                            key={dept.id}
-                            className={`relative group transition-all ${isAdmin ? 'cursor-grab active:cursor-grabbing' : ''} ${dragOverIndex === index ? 'ring-2 ring-indigo-400 ring-offset-2 scale-[1.02]' : ''}`}
-                            draggable={isAdmin}
-                            onDragStart={() => handleDragStart(index)}
-                            onDragEnter={() => handleDragEnter(index)}
-                            onDragOver={(e) => e.preventDefault()}
-                            onDragEnd={handleDragEnd}
-                        >
-                            <Link href={`/department/${dept.id}`}>
-                                <div
-                                    className="h-40 rounded-xl bg-white border border-slate-200 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col items-start justify-between p-5 overflow-hidden"
-                                    style={{ borderTopWidth: '4px', borderTopColor: dept.color || '#4F46E5' }}
-                                >
-                                    <div className="flex justify-between w-full items-start">
-                                        <div
-                                            className="w-12 h-12 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform"
-                                            style={{ backgroundColor: `${dept.color || '#4F46E5'}15`, color: dept.color || '#4F46E5' }}
-                                        >
-                                            <IconComponent className="w-6 h-6" />
-                                        </div>
-                                        {dept.parent_ids && dept.parent_ids.length > 0 && (
-                                            <div className="flex flex-col gap-1 items-end max-w-[120px]">
-                                                {dept.parent_ids.map(pid => {
-                                                    const pDept = departments.find(d => d.id === pid)
-                                                    if (!pDept) return null
-                                                    return (
-                                                        <span key={pid} className="text-[10px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md truncate max-w-full" title={`Child of ${pDept.name}`}>
-                                                            ↳ {pDept.name}
-                                                        </span>
-                                                    )
-                                                })}
-                                            </div>
-                                        )}
-                                    </div>
-                                    <h3 className="text-lg font-semibold text-slate-800 pr-8 line-clamp-2 mt-4">{dept.name}</h3>
-                                </div>
-                            </Link>
-
-                            {/* Admin Controls overlay */}
-                            {isManager && (
-                                <div className="absolute top-3 right-3 text-slate-400">
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-slate-800 bg-white shadow-sm border border-slate-200">
-                                                <MoreHorizontal className="h-4 w-4" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            <DropdownMenuItem onClick={() => {
-                                                setEditingDept(dept)
-                                                setEditName(dept.name)
-                                                setEditIcon(dept.icon || 'Briefcase')
-                                                setEditParentIds(dept.parent_ids || [])
-                                                setEditColor(dept.color || '#4F46E5')
-                                            }}>
-                                                <Pencil className="h-4 w-4 mr-2" />
-                                                {dict.edit_dept}
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => {
-                                                setPasswordDept(dept)
-                                                setNewPassword('')
-                                            }}>
-                                                <KeyRound className="h-4 w-4 mr-2" />
-                                                設定密碼
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem className="text-red-600 focus:bg-red-50 focus:text-red-700" onClick={() => setDeletingDept(dept)}>
-                                                <Trash2 className="h-4 w-4 mr-2" />
-                                                {dict.delete_dept}
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                </div>
+                {departments.filter(d => d.is_group).map((group, index) => (
+                    <div key={group.id} className="col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-4 bg-slate-50 rounded-xl p-4 border border-slate-200">
+                        <div className="mb-4">
+                            {renderDepartmentCard(group, index, isAdmin || (manageableDepartmentIds && manageableDepartmentIds.includes(group.id)) || false, false)}
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pl-4 border-l-2 border-slate-200">
+                            {departments.filter(d => !d.is_group && d.parent_ids?.includes(group.id)).map((child, childIdx) => (
+                                renderDepartmentCard(child, 1000 + childIdx, isAdmin || (manageableDepartmentIds && manageableDepartmentIds.includes(child.id)) || false, true)
+                            ))}
+                            {departments.filter(d => !d.is_group && d.parent_ids?.includes(group.id)).length === 0 && (
+                                <div className="text-slate-400 text-sm italic py-4">No child departments</div>
                             )}
                         </div>
-                    )
-                })}
+                    </div>
+                ))}
+
+                {/* Render root level departments that are not in any group */}
+                {departments.filter(d => !d.is_group && (!d.parent_ids || d.parent_ids.length === 0 || !d.parent_ids.some(pid => departments.find(g => g.id === pid)?.is_group))).map((dept, index) => (
+                    renderDepartmentCard(dept, index + 2000, isAdmin || (manageableDepartmentIds && manageableDepartmentIds.includes(dept.id)) || false, false)
+                ))}
 
                 {/* New Department Placeholder */}
                 {isAdmin && (
@@ -326,6 +387,40 @@ export default function DepartmentManager({
                                     if (e.key === 'Enter') handleCreate()
                                 }}
                             />
+                        </div>
+                        <div className="flex items-center space-x-2 my-2">
+                            <Switch.Root
+                                className="w-[42px] h-[25px] bg-slate-200 rounded-full relative shadow-[0_2px_10px] shadow-blackA4 focus:shadow-[0_0_0_2px] focus:shadow-black data-[state=checked]:bg-indigo-600 outline-none cursor-default"
+                                id="create-is-group"
+                                checked={createIsGroup}
+                                onCheckedChange={setCreateIsGroup}
+                            >
+                                <Switch.Thumb className="block w-[21px] h-[21px] bg-white rounded-full shadow-[0_2px_2px] shadow-blackA4 transition-transform duration-100 translate-x-0.5 will-change-transform data-[state=checked]:translate-x-[19px]" />
+                            </Switch.Root>
+                            <Label htmlFor="create-is-group" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                {dict.is_group}
+                            </Label>
+                        </div>
+                        {createIsGroup && (
+                            <p className="text-xs text-slate-500 mt-[-10px]">{dict.is_group_desc}</p>
+                        )}
+                        <div className="grid gap-2">
+                            <Label htmlFor="create-icon-upload">{dict.upload_icon}</Label>
+                            <Input
+                                id="create-icon-upload"
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => {
+                                    if (e.target.files && e.target.files.length > 0) {
+                                        const file = e.target.files[0];
+                                        const url = URL.createObjectURL(file);
+                                        setCreateCustomIconUrl(url); // Temporary preview
+                                    }
+                                }}
+                            />
+                            {createCustomIconUrl && (
+                                <img src={createCustomIconUrl} alt="Preview" className="w-8 h-8 object-contain my-2 border rounded" />
+                            )}
                         </div>
                         <div className="grid gap-2">
                             <Label>{dict.color}</Label>
@@ -407,6 +502,40 @@ export default function DepartmentManager({
                                     if (e.key === 'Enter') handleEdit()
                                 }}
                             />
+                        </div>
+                        <div className="flex items-center space-x-2 my-2">
+                            <Switch.Root
+                                className="w-[42px] h-[25px] bg-slate-200 rounded-full relative shadow-[0_2px_10px] shadow-blackA4 focus:shadow-[0_0_0_2px] focus:shadow-black data-[state=checked]:bg-indigo-600 outline-none cursor-default"
+                                id="edit-is-group"
+                                checked={editIsGroup}
+                                onCheckedChange={setEditIsGroup}
+                            >
+                                <Switch.Thumb className="block w-[21px] h-[21px] bg-white rounded-full shadow-[0_2px_2px] shadow-blackA4 transition-transform duration-100 translate-x-0.5 will-change-transform data-[state=checked]:translate-x-[19px]" />
+                            </Switch.Root>
+                            <Label htmlFor="edit-is-group" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                {dict.is_group}
+                            </Label>
+                        </div>
+                        {editIsGroup && (
+                            <p className="text-xs text-slate-500 mt-[-10px]">{dict.is_group_desc}</p>
+                        )}
+                        <div className="grid gap-2">
+                            <Label htmlFor="edit-icon-upload">{dict.upload_icon}</Label>
+                            <Input
+                                id="edit-icon-upload"
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => {
+                                    if (e.target.files && e.target.files.length > 0) {
+                                        const file = e.target.files[0];
+                                        const url = URL.createObjectURL(file);
+                                        setEditCustomIconUrl(url); // Temporary preview
+                                    }
+                                }}
+                            />
+                            {editCustomIconUrl && (
+                                <img src={editCustomIconUrl} alt="Preview" className="w-8 h-8 object-contain my-2 border rounded" />
+                            )}
                         </div>
                         <div className="grid gap-2">
                             <Label>{dict.color}</Label>

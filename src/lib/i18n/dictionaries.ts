@@ -157,6 +157,10 @@ export const dictionaries = {
             icon: '圖示',
             parent_dept: '上級部門',
             color: '部門顏色',
+            is_group: '設為群組',
+            is_group_desc: '將此項目設為群組，用來在介面上分類並收納其他部門。',
+            upload_icon: '上傳自訂圖示',
+            uploading: '上傳中...',
             delete_confirm: '您確定要刪除此部門嗎？此操作無法復原，並會連同底下的看板、列表與卡片一併永久刪除。'
         }
     },
@@ -316,6 +320,10 @@ export const dictionaries = {
             icon: 'Icon',
             parent_dept: 'Parent Departments',
             color: 'Color',
+            is_group: 'Is Group',
+            is_group_desc: 'Set as a group to categorize and contain other departments in the UI.',
+            upload_icon: 'Upload Custom Icon',
+            uploading: 'Uploading...',
             delete_confirm: 'Are you absolutely sure you want to delete this department? This action cannot be undone and will permanently delete all associated boards, lists, and cards.'
         }
     },
@@ -475,6 +483,10 @@ export const dictionaries = {
             icon: 'Biểu tượng',
             parent_dept: 'Bộ phận cấp trên',
             color: 'Màu sắc',
+            is_group: 'Là Nhóm',
+            is_group_desc: 'Đặt làm nhóm để phân loại và chứa các bộ phận khác trên giao diện.',
+            upload_icon: 'Tải lên Biểu tượng tùy chỉnh',
+            uploading: 'Đang tải lên...',
             delete_confirm: 'Bạn có chắc chắn muốn xóa bộ phận này không? Hành động này không thể hoàn tác và sẽ xóa vĩnh viễn tất cả các bảng, danh sách và thẻ liên quan.'
         }
     }
