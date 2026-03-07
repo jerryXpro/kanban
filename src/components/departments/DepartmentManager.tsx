@@ -416,7 +416,22 @@ export default function DepartmentManager({
                                 }}
                             />
                             {createCustomIconUrl && (
-                                <img src={createCustomIconUrl} alt="Preview" className="w-8 h-8 object-contain my-2 border rounded" />
+                                <div className="flex items-center gap-2 my-2">
+                                    <img src={createCustomIconUrl} alt="Preview" className="w-8 h-8 object-contain border rounded" />
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 px-2 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                        onClick={() => {
+                                            setCreateCustomIconUrl('')
+                                            const fileInput = document.getElementById('create-icon-upload') as HTMLInputElement
+                                            if (fileInput) fileInput.value = ''
+                                        }}
+                                    >
+                                        <Trash2 className="w-4 h-4 mr-1" />
+                                        {dict.delete_dept || 'Clear'}
+                                    </Button>
+                                </div>
                             )}
                         </div>
                         <div className="grid gap-2">
@@ -531,7 +546,22 @@ export default function DepartmentManager({
                                 }}
                             />
                             {editCustomIconUrl && (
-                                <img src={editCustomIconUrl} alt="Preview" className="w-8 h-8 object-contain my-2 border rounded" />
+                                <div className="flex items-center gap-2 my-2">
+                                    <img src={editCustomIconUrl} alt="Preview" className="w-8 h-8 object-contain border rounded" />
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 px-2 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                        onClick={() => {
+                                            setEditCustomIconUrl('')
+                                            const fileInput = document.getElementById('edit-icon-upload') as HTMLInputElement
+                                            if (fileInput) fileInput.value = ''
+                                        }}
+                                    >
+                                        <Trash2 className="w-4 h-4 mr-1" />
+                                        {dict.delete_dept || 'Clear'}
+                                    </Button>
+                                </div>
                             )}
                         </div>
                         <div className="grid gap-2">
